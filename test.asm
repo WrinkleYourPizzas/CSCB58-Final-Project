@@ -19,6 +19,7 @@ comma: .asciiz ","
 newline: .asciiz "\n"
 
 red: .word 0xff0000
+green: .word 0x00ff00
 blue: .word 0x0000ff
 black: .word 0x000000
 display: .word 0x10008000
@@ -37,6 +38,27 @@ air_time: .word 0
 main:
 	# $t2 stores key input
 	li $t2, 0x000000
+	
+	# draw platform 1	
+	lw $a0, green
+	li $a1, 6
+	li $a2, 55
+	li $a3, 11
+	jal draw_platform
+	
+	# draw platform 2	
+	lw $a0, green
+	li $a1, 15
+	li $a2, 50
+	li $a3, 20
+	jal draw_platform
+	
+	# draw platform 3	
+	lw $a0, green
+	li $a1, 22
+	li $a2, 45
+	li $a3, 27
+	jal draw_platform
 
 	b game_loop
 	
@@ -121,10 +143,7 @@ erase_player:
 	
 	jr $ra
 
-display_player:
-	#b erase_player
-	#continue_after_erase_player:
-	
+display_player:	
 	li $a0, 4
 	lw $t0, display
 	lw $t1, red
@@ -154,6 +173,30 @@ handle_keypress:
 	beq $t2, 0x61, key_A
 	beq $t2, 0x73, key_S
 	beq $t2, 0x64, key_D
+	
+draw_platform:	
+	lw $t0, display
+	li $t2, 4
+	
+	mult $a1, $t2
+	mflo $t1
+	add $t0, $t0, $t1
+	
+	li $t2, 256
+	
+	mult $a2, $t2
+	mflo $a2
+	add $t0, $t0, $a2
+	
+	platform1_loop:
+	sw $a0, ($t0)
+	
+	addi $t0, $t0, 4
+	addi $a1, $a1, 1
+	
+	blt $a1, $a3, platform1_loop
+	
+	jr $ra
 	
 key_W:
    	li $a1, 0
