@@ -38,8 +38,8 @@ stack_size: .word 0
 #.eqv display 0x10008000
 .text
 main:
-	# $t2 stores key input
-	li $t2, 0x000000
+	# $s2 stores key input
+	li $s2, 0x000000
 	
 	# draw platform 1	
 	lw $a0, green
@@ -66,13 +66,11 @@ main:
 	b game_loop
 	
 game_loop:
-	# t0:exit condition ; t2-3: display ; t4-5: player ; t8,9: keypress
+	# s0,1: player ; t9: keypress
 
 	#player stuff
 	lw $s0, player_x
 	lw $s1, player_y
-	lw $t6, x0
-	lw $t7, y0
 
 #	draw player
 	jal erase_player
@@ -129,6 +127,8 @@ erase_player:
 	li $a0, 4
 	lw $t0, display
 	lw $t1, black
+	lw $t6, x0
+	lw $t7, y0
 	
 	mult $t6, $a0
 	mflo $a1
@@ -166,13 +166,13 @@ display_player:
 	
 handle_keypress:
 	# listen to key input
-	lw $t2, 4($t9)
+	lw $s2, 4($t9)
 	
-	beq $t2, 0, sleep_in_main
-	beq $t2, 0x77, key_W
-	beq $t2, 0x61, key_A
-	beq $t2, 0x73, key_S
-	beq $t2, 0x64, key_D
+	beq $s2, 0, sleep_in_main
+	beq $s2, 0x77, key_W
+	beq $s2, 0x61, key_A
+	beq $s2, 0x73, key_S
+	beq $s2, 0x64, key_D
 	
 draw_platform:	
 	# push coords of each platform to stack
@@ -248,11 +248,10 @@ sleep_in_main:
 	beq $a0, $a1, player_gravity
 	continue_after_player_gravity:
 
+	# sleep
 	li $v0, 32
 	li $a0, 70
 	
-	#reset key input from last cycle
-	li $t2, 0
 	syscall
 	
 	b player_hitbox
@@ -304,11 +303,11 @@ player_y_pb:
 	j continue_after_player_y_pb
 
 check_platform_stack:
-	# t4 = player_x, t5 = player_y
+	# s0 = player_x, s1 = player_y
 	lw $t4, stack_size
 	li $t5, 0
-	lw $s2, player_width
-	lw $s3, player_height
+	lw $t2, player_width
+	lw $t3, player_height
 	move $s4, $sp
 
 	check_stack_loop:
@@ -321,12 +320,15 @@ check_platform_stack:
 	
 	subi $t4, $t4, 1
 	
-	add $zero, $s1, $s3
-	ble $a2, $zero, skip_all_conditions
-	bge $a2, $s1, skip_all_conditions
-	add $zero, $s0, $s2
-	ble $zero, $a1, skip_all_conditions
-	ble $zero, $a3, stand_on_platform
+#	add $zero, $s1, $t3
+#	blt $zero, $a2, skip_all_conditions
+#	bgt $s1, $a2, skip_all_conditions
+#	add $zero, $s0, $t2
+#	blt $zero, $a1, skip_all_conditions
+#	ble $zero, $a3, stand_on_platform
+
+	add $zero, $s1, $t3
+	blt $zero $a2, stand_on_platform
 	
 	skip_all_conditions:
 	bgt $t4, $t5, check_stack_loop
