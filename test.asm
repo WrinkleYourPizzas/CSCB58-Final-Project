@@ -1,5 +1,3 @@
-# Bqfwefwef
-
 # Bitmap Display Configuration:
 # - Unit width in pixels: 4
 # - Unit height in pixels: 4
@@ -26,11 +24,15 @@ display: .word 0x10008000
 
 player_x: .word 4
 player_y: .word 5
+player_width: .word 3
+player_height: .word 4
 player_delta_y: .word 0
 x0: .word 0
 y0: .word 0
 landed: .byte 1
 air_time: .word 0
+
+stack_size: .word 0
 
 .globl main
 #.eqv display 0x10008000
@@ -44,6 +46,7 @@ main:
 	li $a1, 6
 	li $a2, 55
 	li $a3, 11
+	
 	jal draw_platform
 	
 	# draw platform 2	
@@ -138,9 +141,6 @@ erase_player:
 	
 	sw $t1, ($t0)
 	
-	#b print_coords
-	continue_after_printing_coords:
-	
 	jr $ra
 
 display_player:	
@@ -175,6 +175,19 @@ handle_keypress:
 	beq $t2, 0x64, key_D
 	
 draw_platform:	
+	# push coords of each platform to stack
+	addi $sp, $sp, -4
+	sw $a1, 0($sp)
+	addi $sp, $sp, -4
+	sw $a2, 0($sp)
+	addi $sp, $sp, -4
+	sw $a3, 0($sp)
+	
+	lw $s1, stack_size
+	addi $s1, $s1, 1
+	sw $s1, stack_size
+	
+	# actual drawing	
 	lw $t0, display
 	li $t2, 4
 	
@@ -209,21 +222,21 @@ key_W:
 
 key_A:
 	lw $a1, player_x
-	subi $a1, $a1, 1
+	subi $a1, $a1, 2
    	sw $a1, player_x
 	
 	b sleep_in_main
 
 key_S:
 	lw $a1, player_y
-	addi $a1, $a1, 1 
+	addi $a1, $a1, 2 
    	sw $a1, player_y
 
 	b sleep_in_main
 
 key_D:	
 	lw $a1, player_x
-	addi $a1, $a1, 1
+	addi $a1, $a1, 2
    	sw $a1, player_x
    	
 	b sleep_in_main
@@ -262,8 +275,10 @@ player_hitbox:
 	bgt $t5, 63, player_y_pb	
 	continue_after_player_y_pb:
 	
-	j continue_after_player_hitbox
+	jal check_platform_stack
 	
+	j continue_after_player_hitbox
+
 player_x_nb:
 	sw $a0, player_x
 	j continue_after_player_x_nb
@@ -287,6 +302,46 @@ player_y_pb:
 	continue_after_land:
 	
 	j continue_after_player_y_pb
+
+check_platform_stack:
+	# t4 = player_x, t5 = player_y
+	lw $s0, stack_size
+	li $s1, 0
+	lw $s2, player_width
+	lw $s3, player_height
+	move $s4, $sp
+
+	check_stack_loop:
+	lw $a1, 0($s4)
+	addi $s4, $s4, 4
+	lw $a2, 0($s4)
+	addi $s4, $s4, 4
+	lw $a3, 0($s4)
+	addi $s4, $s4, 4
+	
+	subi $s0, $s0, 1
+	
+	add $zero, $t5, $s3
+	ble $a2, $zero, skip_all_conditions
+	bge $a2, $t5, skip_all_conditions
+	add $zero, $t4, $s2
+	ble $zero, $a1, skip_all_conditions
+	ble $zero, $a3, stand_on_platform
+	
+	skip_all_conditions:
+	bgt $s0, $s1, check_stack_loop
+	
+	continue_after_stand_on_platform:
+	jr $ra
+	
+stand_on_platform:
+	b print_coords
+	continue_after_printing_coords:
+	
+	add $s4, $t5, $a2
+	sw $s4, player_y
+	
+	j continue_after_stand_on_platform
 	
 print_coords:
 	li $v0, 4
