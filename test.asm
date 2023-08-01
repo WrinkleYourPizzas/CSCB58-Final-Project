@@ -69,8 +69,8 @@ game_loop:
 	# t0:exit condition ; t2-3: display ; t4-5: player ; t8,9: keypress
 
 	#player stuff
-	lw $t4, player_x
-	lw $t5, player_y
+	lw $s0, player_x
+	lw $s1, player_y
 	lw $t6, x0
 	lw $t7, y0
 
@@ -96,9 +96,9 @@ game_loop:
 	bne $t0, $v1, sleep_in_main
 
 player_gravity:
-	li $s0, 2
+	li $t4, 2
 	lw $a1, air_time
-	bgt $a1, $s0, skip_add_time
+	bgt $a1, $t4, skip_add_time
 	
 	addi $a1, $a1, 1
    	sw $a1, air_time
@@ -150,13 +150,13 @@ display_player:
 	lw $t2, green
 	lw $t3, blue
 	
-	mult $t4, $a0
+	mult $s0, $a0
 	mflo $a1
 	add $t0, $t0, $a1
 	
 	li $a0, 256
 	
-	mult $t5, $a0
+	mult $s1, $a0
 	mflo $a1
 	add $t0, $t0, $a1
 	
@@ -183,9 +183,9 @@ draw_platform:
 	addi $sp, $sp, -4
 	sw $a3, 0($sp)
 	
-	lw $s1, stack_size
-	addi $s1, $s1, 1
-	sw $s1, stack_size
+	lw $t5, stack_size
+	addi $t5, $t5, 1
+	sw $t5, stack_size
 	
 	# actual drawing	
 	lw $t0, display
@@ -263,16 +263,16 @@ sleep_in_main:
 player_hitbox:
 	li $a0, 0
 	li $a1, 63
-	lw $t4, player_x
-	lw $t5, player_y
+	lw $s0, player_x
+	lw $s1, player_y
 	
-	blt $t4, 0, player_x_nb
+	blt $s0, 0, player_x_nb
 	continue_after_player_x_nb:
-	bgt $t4, 63, player_x_pb
+	bgt $s0, 63, player_x_pb
 	continue_after_player_x_pb:
-	blt $t5, 0, player_y_nb
+	blt $s1, 0, player_y_nb
 	continue_after_player_y_nb:
-	bgt $t5, 63, player_y_pb	
+	bgt $s1, 63, player_y_pb	
 	continue_after_player_y_pb:
 	
 	jal check_platform_stack
@@ -305,8 +305,8 @@ player_y_pb:
 
 check_platform_stack:
 	# t4 = player_x, t5 = player_y
-	lw $s0, stack_size
-	li $s1, 0
+	lw $t4, stack_size
+	li $t5, 0
 	lw $s2, player_width
 	lw $s3, player_height
 	move $s4, $sp
@@ -319,17 +319,17 @@ check_platform_stack:
 	lw $a3, 0($s4)
 	addi $s4, $s4, 4
 	
-	subi $s0, $s0, 1
+	subi $t4, $t4, 1
 	
-	add $zero, $t5, $s3
+	add $zero, $s1, $s3
 	ble $a2, $zero, skip_all_conditions
-	bge $a2, $t5, skip_all_conditions
-	add $zero, $t4, $s2
+	bge $a2, $s1, skip_all_conditions
+	add $zero, $s0, $s2
 	ble $zero, $a1, skip_all_conditions
 	ble $zero, $a3, stand_on_platform
 	
 	skip_all_conditions:
-	bgt $s0, $s1, check_stack_loop
+	bgt $t4, $t5, check_stack_loop
 	
 	continue_after_stand_on_platform:
 	jr $ra
@@ -338,7 +338,7 @@ stand_on_platform:
 	b print_coords
 	continue_after_printing_coords:
 	
-	add $s4, $t5, $a2
+	add $s4, $s1, $a2
 	sw $s4, player_y
 	
 	j continue_after_stand_on_platform
