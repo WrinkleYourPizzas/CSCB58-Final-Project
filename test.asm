@@ -38,6 +38,19 @@ stack_size: .word 0
 #.eqv display 0x10008000
 .text
 main:
+	# default values
+	li $t0, 4
+	sw $t0, player_x
+	li $t0, 5
+	sw $t0, player_y
+	li $t0, 0
+	sw $t0, x0
+	sw $t0, y0
+	sw $t0, air_time
+	sw $t0, player_delta_y
+	li $t0, 1
+	sw $t0, landed
+
 	# $s2 stores key input
 	li $s2, 0x000000
 	
@@ -46,7 +59,6 @@ main:
 	li $a1, 6
 	li $a2, 55
 	li $a3, 11
-	
 	jal draw_platform
 	
 	# draw platform 2	
@@ -242,6 +254,9 @@ handle_keypress:
 	beq $s2, 0x61, key_A
 	beq $s2, 0x73, key_S
 	beq $s2, 0x64, key_D
+	beq $s2, 0x70, key_P
+	
+	b sleep_in_main
 	
 draw_platform:	
 	# push coords of each platform to stack
@@ -270,13 +285,13 @@ draw_platform:
 	mflo $a2
 	add $t0, $t0, $a2
 	
-	platform1_loop:
+	platform_loop:
 	sw $a0, ($t0)
 	
 	addi $t0, $t0, 4
 	addi $a1, $a1, 1
 	
-	blt $a1, $a3, platform1_loop
+	blt $a1, $a3, platform_loop
 	
 	jr $ra
 	
@@ -309,6 +324,10 @@ key_D:
    	sw $a1, player_x
    	
 	b sleep_in_main
+	
+key_P:
+	jal clear_screen
+	b main
 	
 player_hitbox:
 	li $a0, 0
@@ -419,6 +438,19 @@ no_longer_standing_on_platform:
 	sw $t1, landed
 	
 	skip_stop_standing_on_platform:
+	jr $ra
+	
+clear_screen:
+	lw $t1, display
+	lw $t2, black
+	li $t3, 4096
+	li $t4, 0
+	
+	change_to_black:
+		sw $t2, ($t1)
+		addi $t1, $t1, 4
+		subi $t3, $t3, 1
+		bgt $t3, $t4, change_to_black
 	jr $ra
 	
 print:
