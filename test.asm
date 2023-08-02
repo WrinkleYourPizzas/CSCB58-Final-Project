@@ -31,14 +31,20 @@ x0: .word 0
 y0: .word 0
 landed: .byte 1
 air_time: .word 0
+jump_counter: .word 0
 
-stack_size: .word 0
+base_stack_address: .word 0
+platform_stack_size: .word 0
+item_stack_size: .word 0
+enemy_stack_size: .word 0
+effects_stack_size: .word 0
 
 .globl main
 #.eqv display 0x10008000
 .text
 main:
 	# default values
+	sw $sp, base_stack_address
 	li $t0, 4
 	sw $t0, player_x
 	li $t0, 5
@@ -74,6 +80,18 @@ main:
 	li $a2, 45
 	li $a3, 27
 	jal draw_platform
+	
+	# draw item 1
+	lw $a0, blue
+	li $a1, 23
+	li $a2, 43
+	jal draw_item
+	
+	# draw item 2
+	lw $a0, blue
+	li $a1, 14
+	li $a2, 48
+	jal draw_item
 
 	b game_loop
 	
@@ -84,7 +102,7 @@ game_loop:
 	lw $s0, player_x
 	lw $s1, player_y
 
-#	draw player
+	# draw player
 	jal erase_player
 	jal display_player
 	
@@ -96,8 +114,8 @@ game_loop:
 
 	# keypress stuff
 	li $v1, 1
-	li $t9, 0xffff0000
-	lw $t8, 0($t9)
+	li $s7, 0xffff0000
+	lw $t8, 0($s7)
 	beq $t8, 1, handle_keypress
 
 	# if t0 is 1, end program
@@ -114,7 +132,7 @@ sleep_in_main:
 
 	# sleep
 	li $v0, 32
-	li $a0, 70
+	li $a0, 40
 	
 	syscall
 	
@@ -147,16 +165,6 @@ player_gravity:
    	sw $a2, player_y
    	
    	j continue_after_player_gravity
-
-land:
-	li $a0, 0
-   	sw $a0, air_time
-   	sw $a0, player_delta_y
-   	
-   	li $a0, 1
-   	sb $a0, landed
-   	
-   	j continue_after_land
 
 erase_player:
 	li $a0, 4
@@ -219,15 +227,15 @@ display_player:
 	add $t0, $t0, $a1
 	
 	addi $t0, $t0, 4
-	sw $t1, ($t0)
+	sw $t2, ($t0)
 	addi $t0, $t0, 4
-	sw $t1, ($t0)
+	sw $t2, ($t0)
 	addi $t0, $t0, 248
 	sw $t2, ($t0)
 	addi $t0, $t0, 4
-	sw $t3, ($t0)
+	sw $t2, ($t0)
 	addi $t0, $t0, 4
-	sw $t3, ($t0)
+	sw $t2, ($t0)
 	addi $t0, $t0, 4
 	sw $t2, ($t0)
 	addi $t0, $t0, 248
@@ -247,7 +255,7 @@ display_player:
 	
 handle_keypress:
 	# listen to key input
-	lw $s2, 4($t9)
+	lw $s2, 4($s7)
 	
 	beq $s2, 0, sleep_in_main
 	beq $s2, 0x77, key_W
@@ -258,7 +266,15 @@ handle_keypress:
 	
 	b sleep_in_main
 	
-draw_platform:	
+draw_platform:
+	# go to stack location
+	lw $sp, base_stack_address
+	lw $t1, platform_stack_size
+	li $t2, 12
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+
 	# push coords of each platform to stack
 	addi $sp, $sp, -4
 	sw $a1, 0($sp)
@@ -267,11 +283,11 @@ draw_platform:
 	addi $sp, $sp, -4
 	sw $a3, 0($sp)
 	
-	lw $t5, stack_size
+	lw $t5, platform_stack_size
 	addi $t5, $t5, 1
-	sw $t5, stack_size
+	sw $t5, platform_stack_size
 	
-	# actual drawing	
+	# draw	
 	lw $t0, display
 	li $t2, 4
 	
@@ -295,11 +311,54 @@ draw_platform:
 	
 	jr $ra
 	
+draw_item:
+	# go to stack location
+	lw $sp, base_stack_address
+	lw $t1, platform_stack_size
+	li $t2, 12
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	li $t2, 8
+	lw $t1, item_stack_size
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+
+	# push to stack
+	addi $sp, $sp, -4
+	sw $a1, 0($sp)
+	addi $sp, $sp, -4
+	sw $a2, 0($sp)
+	
+	# find coord
+	move $t9, $ra
+	jal calculate_coords
+	move $t1, $v0
+	move $ra, $t9
+	
+	# draw
+	sw $a0, ($t1)
+	addi $t1, $t1, 4
+	sw $a0, ($t1)
+	addi $t1, $t1, 252
+	sw $a0, ($t1)
+	addi $t1, $t1, 4
+	sw $a0, ($t1)
+
+	jr $ra
+	
 key_W:
+	lw $t1, jump_counter
+	li $t2, 1
+	beq $t1, $t2, sleep_in_main
+	
+	sw $t2, jump_counter
+
    	li $a1, 0
    	sw $a1, landed
    	
-   	li $a1, -10
+   	li $a1, -8
    	sw $a1, player_delta_y
    	
 	b sleep_in_main
@@ -368,19 +427,33 @@ player_y_nb:
 player_y_pb:
 	sw $a1, player_y
 	
-	li $a2, 2
+	li $a2, 1
 	lw $a3, air_time
 	blt $a3, $a2, continue_after_player_y_pb
 	
-	b land
-	continue_after_land:
+	li $t6, 0
+   	sw $t6, air_time
+   	sw $t6, player_delta_y
+   	sw $t6, jump_counter
+   	
+   	li $t6, 1
+   	sb $t6, landed
 	
 	j continue_after_player_y_pb
 
 check_platform_stack:
+	# go to stack location
+	lw $sp, base_stack_address
+	lw $t1, platform_stack_size
+	li $t2, 12
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	
+	# load player variables
 	lw $s0, player_x
 	lw $s1, player_y
-	lw $t4, stack_size
+	lw $t4, platform_stack_size
 	li $t5, 0
 	lw $t2, player_width
 	lw $t3, player_height
@@ -423,6 +496,7 @@ stand_on_platform:
 	li $t1, 0
    	sw $t1, air_time
    	sw $t1, player_delta_y
+   	sw $t1, jump_counter
    	
    	li $t1, 1
    	sb $t1, landed
@@ -451,6 +525,23 @@ clear_screen:
 		addi $t1, $t1, 4
 		subi $t3, $t3, 1
 		bgt $t3, $t4, change_to_black
+	jr $ra
+	
+calculate_coords:
+	# draw	
+	lw $t0, display
+	li $t2, 4
+	
+	mult $a1, $t2
+	mflo $t1
+	add $t0, $t0, $t1
+	
+	li $t2, 256
+	
+	mult $a2, $t2
+	mflo $a2
+	add $v0, $t0, $a2
+	
 	jr $ra
 	
 print:
