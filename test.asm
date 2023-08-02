@@ -81,17 +81,24 @@ main:
 	li $a3, 27
 	jal draw_platform
 	
-	# draw item 1
+	# init item 1
 	lw $a0, blue
 	li $a1, 23
 	li $a2, 43
 	jal draw_item
 	
-	# draw item 2
+	# init item 2
 	lw $a0, blue
 	li $a1, 14
 	li $a2, 48
 	jal draw_item
+	
+	# init enemy 1
+	lw $a0, red
+	li $a1, 20
+	li $a2, 58
+	li $a3, 1
+	jal draw_enemy
 
 	b game_loop
 	
@@ -121,9 +128,9 @@ game_loop:
 	# if t0 is 1, end program
 	beq $t0, $v1, exit
 
-	bne $t0, $v1, sleep_in_main
+	bne $t0, $v1, sleep
 	
-sleep_in_main:
+sleep:
 	# gravity
 	li $a0, 0
 	lb $a1, landed
@@ -253,19 +260,6 @@ display_player:
 	
 	jr $ra
 	
-handle_keypress:
-	# listen to key input
-	lw $s2, 4($s7)
-	
-	beq $s2, 0, sleep_in_main
-	beq $s2, 0x77, key_W
-	beq $s2, 0x61, key_A
-	beq $s2, 0x73, key_S
-	beq $s2, 0x64, key_D
-	beq $s2, 0x70, key_P
-	
-	b sleep_in_main
-	
 draw_platform:
 	# go to stack location
 	lw $sp, base_stack_address
@@ -348,10 +342,85 @@ draw_item:
 
 	jr $ra
 	
+draw_enemy:	
+	# go to stack location
+	lw $sp, base_stack_address
+	lw $t1, platform_stack_size
+	li $t2, 12
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	li $t2, 8
+	lw $t1, item_stack_size
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	lw $t1, enemy_stack_size
+	li $t2, 12
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	
+	# push to stack
+	addi $sp, $sp, -4
+	sw $a1, 0($sp)
+	addi $sp, $sp, -4
+	sw $a2, 0($sp)
+	addi $sp, $sp, -4
+	sw $a3, 0($sp)
+	
+	# find coord
+	move $t9, $ra
+	jal calculate_coords
+	move $t0, $v0
+	move $ra, $t9
+	
+	# draw
+	addi $t0, $t0, 4
+	sw $a0, ($t0)
+	addi $t0, $t0, 4
+	sw $a0, ($t0)
+	addi $t0, $t0, 248
+	sw $a0, ($t0)
+	addi $t0, $t0, 4
+	sw $a0, ($t0)
+	addi $t0, $t0, 4
+	sw $a0, ($t0)
+	addi $t0, $t0, 4
+	sw $a0, ($t0)
+	addi $t0, $t0, 248
+	sw $a0, ($t0)
+	addi $t0, $t0, 4
+	sw $a0, ($t0)
+	addi $t0, $t0, 252
+	sw $a0, ($t0)
+	addi $t0, $t0, 4
+	sw $a0, ($t0)
+	addi $t0, $t0, 252
+	sw $a0, ($t0)
+	addi $t0, $t0, 4
+	sw $a0, ($t0)
+	
+	jr $ra
+	
+		
+handle_keypress:
+	# listen to key input
+	lw $s2, 4($s7)
+	
+	beq $s2, 0, sleep
+	beq $s2, 0x77, key_W
+	beq $s2, 0x61, key_A
+	beq $s2, 0x73, key_S
+	beq $s2, 0x64, key_D
+	beq $s2, 0x70, key_P
+	
+	b sleep
+	
 key_W:
 	lw $t1, jump_counter
 	li $t2, 1
-	beq $t1, $t2, sleep_in_main
+	beq $t1, $t2, sleep
 	
 	sw $t2, jump_counter
 
@@ -361,28 +430,28 @@ key_W:
    	li $a1, -8
    	sw $a1, player_delta_y
    	
-	b sleep_in_main
+	b sleep
 
 key_A:
 	lw $a1, player_x
 	subi $a1, $a1, 2
    	sw $a1, player_x
 	
-	b sleep_in_main
+	b sleep
 
 key_S:
 	lw $a1, player_y
 	addi $a1, $a1, 2 
    	sw $a1, player_y
 
-	b sleep_in_main
+	b sleep
 
 key_D:	
 	lw $a1, player_x
 	addi $a1, $a1, 2
    	sw $a1, player_x
    	
-	b sleep_in_main
+	b sleep
 	
 key_P:
 	jal clear_screen
