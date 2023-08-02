@@ -24,8 +24,8 @@ display: .word 0x10008000
 
 player_x: .word 4
 player_y: .word 5
-player_width: .word 3
-player_height: .word 4
+player_width: .word 4
+player_height: .word 5
 player_delta_y: .word 0
 x0: .word 0
 y0: .word 0
@@ -92,9 +92,27 @@ game_loop:
 	beq $t0, $v1, exit
 
 	bne $t0, $v1, sleep_in_main
+	
+sleep_in_main:
+	# gravity
+	li $a0, 0
+	lb $a1, landed
+	beq $a0, $a1, player_gravity
+	continue_after_player_gravity:
+
+	# sleep
+	li $v0, 32
+	li $a0, 70
+	
+	syscall
+	
+	b player_hitbox
+	continue_after_player_hitbox:
+	
+	b game_loop
 
 player_gravity:
-	li $t4, 2
+	li $t4, 1
 	lw $a1, air_time
 	bgt $a1, $t4, skip_add_time
 	
@@ -103,9 +121,14 @@ player_gravity:
    	
    	skip_add_time:
    	
+   	li $t4, 3
    	lw $a3, player_delta_y
+   	bgt $a3, $t4, skip_add_speed
+   	
    	add $a3, $a3, $a1
    	sw $a3, player_delta_y
+   	
+   	skip_add_speed:
    	
    	lw $a2, player_y
 	add $a2, $a2, $a3 
@@ -139,6 +162,29 @@ erase_player:
 	mflo $a1
 	add $t0, $t0, $a1
 	
+	addi $t0, $t0, 4
+	sw $t1, ($t0)
+	addi $t0, $t0, 4
+	sw $t1, ($t0)
+	addi $t0, $t0, 248
+	sw $t1, ($t0)
+	addi $t0, $t0, 4
+	sw $t1, ($t0)
+	addi $t0, $t0, 4
+	sw $t1, ($t0)
+	addi $t0, $t0, 4
+	sw $t1, ($t0)
+	addi $t0, $t0, 248
+	sw $t1, ($t0)
+	addi $t0, $t0, 4
+	sw $t1, ($t0)
+	addi $t0, $t0, 252
+	sw $t1, ($t0)
+	addi $t0, $t0, 4
+	sw $t1, ($t0)
+	addi $t0, $t0, 252
+	sw $t1, ($t0)
+	addi $t0, $t0, 4
 	sw $t1, ($t0)
 	
 	jr $ra
@@ -160,6 +206,29 @@ display_player:
 	mflo $a1
 	add $t0, $t0, $a1
 	
+	addi $t0, $t0, 4
+	sw $t1, ($t0)
+	addi $t0, $t0, 4
+	sw $t1, ($t0)
+	addi $t0, $t0, 248
+	sw $t2, ($t0)
+	addi $t0, $t0, 4
+	sw $t3, ($t0)
+	addi $t0, $t0, 4
+	sw $t3, ($t0)
+	addi $t0, $t0, 4
+	sw $t2, ($t0)
+	addi $t0, $t0, 248
+	sw $t2, ($t0)
+	addi $t0, $t0, 4
+	sw $t2, ($t0)
+	addi $t0, $t0, 252
+	sw $t2, ($t0)
+	addi $t0, $t0, 4
+	sw $t2, ($t0)
+	addi $t0, $t0, 252
+	sw $t2, ($t0)
+	addi $t0, $t0, 4
 	sw $t2, ($t0)
 	
 	jr $ra
@@ -240,24 +309,6 @@ key_D:
    	sw $a1, player_x
    	
 	b sleep_in_main
-
-sleep_in_main:
-	# gravity
-	li $a0, 0
-	lb $a1, landed
-	beq $a0, $a1, player_gravity
-	continue_after_player_gravity:
-
-	# sleep
-	li $v0, 32
-	li $a0, 70
-	
-	syscall
-	
-	b player_hitbox
-	continue_after_player_hitbox:
-	
-	b game_loop
 	
 player_hitbox:
 	li $a0, 0
@@ -265,13 +316,18 @@ player_hitbox:
 	lw $s0, player_x
 	lw $s1, player_y
 	
+	lw $t7, player_height
+	lw $t6, player_width
+	sub $t6, $a1, $t6
+	sub $a1, $a1, $t7
+	
 	blt $s0, 0, player_x_nb
 	continue_after_player_x_nb:
-	bgt $s0, 63, player_x_pb
+	bgt $s0, $t6, player_x_pb
 	continue_after_player_x_pb:
 	blt $s1, 0, player_y_nb
 	continue_after_player_y_nb:
-	bgt $s1, 63, player_y_pb	
+	bgt $s1, $a1, player_y_pb	
 	continue_after_player_y_pb:
 	
 	jal check_platform_stack
@@ -283,7 +339,7 @@ player_x_nb:
 	j continue_after_player_x_nb
 	
 player_x_pb:
-	sw $a1, player_x
+	sw $t6, player_x
 	j continue_after_player_x_pb
 	
 player_y_nb:
@@ -303,49 +359,69 @@ player_y_pb:
 	j continue_after_player_y_pb
 
 check_platform_stack:
-	# s0 = player_x, s1 = player_y
+	lw $s0, player_x
+	lw $s1, player_y
 	lw $t4, stack_size
 	li $t5, 0
 	lw $t2, player_width
 	lw $t3, player_height
 	move $s4, $sp
+	
+	lw $t6, player_delta_y
+	blt $t6, $t5, skip_platform_check
 
 	check_stack_loop:
-	lw $a1, 0($s4)
+	lw $a3, 0($s4)
 	addi $s4, $s4, 4
 	lw $a2, 0($s4)
 	addi $s4, $s4, 4
-	lw $a3, 0($s4)
+	lw $a1, 0($s4)
 	addi $s4, $s4, 4
 	
 	subi $t4, $t4, 1
 	
-#	add $zero, $s1, $t3
-#	blt $zero, $a2, skip_all_conditions
-#	bgt $s1, $a2, skip_all_conditions
-#	add $zero, $s0, $t2
-#	blt $zero, $a1, skip_all_conditions
-#	ble $zero, $a3, stand_on_platform
-
-	add $zero, $s1, $t3
-	blt $zero $a2, stand_on_platform
+	add $t6, $s1, $t3
+	blt $t6, $a2, skip_all_conditions
+	bgt $s1, $a2, skip_all_conditions
+	add $t6, $s0, $t2	
+	blt $t6, $a1, skip_all_conditions
+	ble $s0, $a3, stand_on_platform
 	
 	skip_all_conditions:
 	bgt $t4, $t5, check_stack_loop
 	
-	continue_after_stand_on_platform:
+	b no_longer_standing_on_platform
+	skip_platform_check:
 	jr $ra
 	
-stand_on_platform:
-	b print_coords
-	continue_after_printing_coords:
-	
-	add $s4, $s1, $a2
+stand_on_platform:		
+#	b print
+	continue_after_print:
+		
+	sub $s4, $a2, $t3
 	sw $s4, player_y
 	
-	j continue_after_stand_on_platform
+	li $t1, 0
+   	sw $t1, air_time
+   	sw $t1, player_delta_y
+   	
+   	li $t1, 1
+   	sb $t1, landed
 	
-print_coords:
+	jr $ra
+	
+no_longer_standing_on_platform:
+	li $t1, 63
+	lw $t2, player_y
+	beq $t1, $t2, skip_stop_standing_on_platform
+	
+	li $t1, 0
+	sw $t1, landed
+	
+	skip_stop_standing_on_platform:
+	jr $ra
+	
+print:
 	li $v0, 4
  	la $a0, bracket
  	syscall
@@ -367,7 +443,7 @@ print_coords:
  	syscall
  	
  	li $v0, 1
-   	lw $a0, player_delta_y
+   	move $a0, $t2
  	syscall
  	
  	li $v0, 4
@@ -375,7 +451,7 @@ print_coords:
  	syscall
  	
  	li $v0, 1
-   	lw $a0, air_time
+   	move $a0, $t6
  	syscall
  	
  	li $v0, 4
@@ -383,10 +459,34 @@ print_coords:
  	syscall
  	
  	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+   	move $a0, $a1
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+   	move $a0, $a2
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+   	move $a0, $a3
+ 	syscall
+ 	
+ 	li $v0, 4
  	la $a0, newline
  	syscall
  	
- 	j continue_after_printing_coords
+ 	j continue_after_print
 
 exit:
 	li $v0, 10 
