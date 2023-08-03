@@ -108,6 +108,8 @@ game_loop:
 	#player stuff
 	lw $s0, player_x
 	lw $s1, player_y
+#	sw $s0, x0
+#	sw $s1, y0
 
 	# draw player
 	jal erase_player
@@ -123,14 +125,17 @@ game_loop:
 	li $v1, 1
 	li $s7, 0xffff0000
 	lw $t8, 0($s7)
-	beq $t8, 1, handle_keypress
-
-	# if t0 is 1, end program
-	beq $t0, $v1, exit
-
-	bne $t0, $v1, sleep
+	bne $t8, 1, after_keypress
+	lw $t8, 4($s7)
 	
-sleep:
+	beq $t8, 0x77, key_W
+	beq $t8, 0x61, key_A
+	beq $t8, 0x73, key_S
+	beq $t8, 0x64, key_D
+	beq $t8, 0x70, key_P
+	
+	after_keypress:
+	
 	# gravity
 	li $a0, 0
 	lb $a1, landed
@@ -140,12 +145,12 @@ sleep:
 	# sleep
 	li $v0, 32
 	li $a0, 40
-	
 	syscall
 	
 	b player_hitbox
 	continue_after_player_hitbox:
-	
+
+	# repeat loop
 	b game_loop
 
 player_gravity:
@@ -416,23 +421,10 @@ draw_enemy:
 	
 	jr $ra
 	
-handle_keypress:
-	# listen to key input
-	lw $s2, 4($s7)
-	
-	beq $s2, 0, sleep
-	beq $s2, 0x77, key_W
-	beq $s2, 0x61, key_A
-	beq $s2, 0x73, key_S
-	beq $s2, 0x64, key_D
-	beq $s2, 0x70, key_P
-	
-	b sleep
-	
 key_W:
 	lw $t1, jump_counter
 	li $t2, 1
-	beq $t1, $t2, sleep
+	beq $t1, $t2, after_keypress
 	
 	sw $t2, jump_counter
 
@@ -442,28 +434,28 @@ key_W:
    	li $a1, -8
    	sw $a1, player_delta_y
    	
-	b sleep
+	b after_keypress
 
 key_A:
 	lw $a1, player_x
 	subi $a1, $a1, 2
    	sw $a1, player_x
 	
-	b sleep
+	b after_keypress
 
 key_S:
 	lw $a1, player_y
 	addi $a1, $a1, 2 
    	sw $a1, player_y
 
-	b sleep
+	b after_keypress
 
 key_D:	
 	lw $a1, player_x
 	addi $a1, $a1, 2
    	sw $a1, player_x
    	
-	b sleep
+	b after_keypress
 	
 key_P:
 	jal clear_screen
@@ -654,7 +646,11 @@ check_enemies_stack:
 	jr $ra
 	
 enemy_collision:
-	b print
+	lw $t1, x0
+	lw $t2, y0
+	sw $s1, player_x
+	sw $s2, player_y
+	
 	continue_after_print:
 	
 	jr $ra
