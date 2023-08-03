@@ -45,9 +45,9 @@ effects_stack_size: .word 0
 main:
 	# default values
 	sw $sp, base_stack_address
-	li $t0, 4
+	li $t0, 0
 	sw $t0, player_x
-	li $t0, 5
+	li $t0, 50
 	sw $t0, player_y
 	li $t0, 0
 	sw $t0, x0
@@ -97,8 +97,11 @@ main:
 	lw $a0, red
 	li $a1, 20
 	li $a2, 58
-	li $a3, 1
-	jal draw_enemy
+	li $a3, 20
+	li $v0, 40
+	li $v1, 1
+	li $s5, -1
+	jal init_enemy
 
 	b game_loop
 	
@@ -109,15 +112,11 @@ game_loop:
 	lw $s0, player_x
 	lw $s1, player_y	
 	
-	# store previous player location
-#	lw $a1, player_x
-#	sw $a1, x0
-#	lw $a1, player_y
-#	sw $a1, y0
-
+	# draw player
 	jal erase_player
-	jal display_player
+	jal draw_player
 	
+	# store previous player location
 	sw $s0, x0
 	sw $s1, y0
 
@@ -144,10 +143,6 @@ game_loop:
 	
 	jal player_hitbox
 	
-	# draw player
-#	jal erase_player
-#	jal display_player
-
 	# sleep
 	li $v0, 32
 	li $a0, 40
@@ -224,7 +219,7 @@ erase_player:
 	
 	jr $ra
 
-display_player:	
+draw_player:	
 	lw $s0, player_x
 	lw $s1, player_y
 	li $a0, 4
@@ -356,7 +351,7 @@ draw_item:
 
 	jr $ra
 	
-draw_enemy:	
+init_enemy:	
 	# go to stack location
 	lw $sp, base_stack_address
 	lw $t1, platform_stack_size
@@ -370,7 +365,7 @@ draw_enemy:
 	mflo $t2
 	sub $sp, $sp, $t2
 	lw $t1, enemy_stack_size
-	li $t2, 12
+	li $t2, 24
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
@@ -382,17 +377,29 @@ draw_enemy:
 	sw $a2, 0($sp)
 	addi $sp, $sp, -4
 	sw $a3, 0($sp)
+	addi $sp, $sp, -4
+	sw $v0, 0($sp)
+	addi $sp, $sp, -4
+	sw $v1, 0($sp)
+	addi $sp, $sp, -4
+	sw $s5, 0($sp)
 	
 	lw $t5, enemy_stack_size
 	addi $t5, $t5, 1
 	sw $t5, enemy_stack_size
 	
-	# find coord
 	move $t9, $ra
+	jal draw_enemy
+	move $ra, $t9
 	
+	jr $ra
+	
+draw_enemy:
+	# find coord
+	move $t8, $ra
 	jal calculate_coords
 	move $t0, $v0
-	move $ra, $t9
+	move $ra, $t8
 	
 	# draw
 	addi $t0, $t0, 4
@@ -604,7 +611,7 @@ check_enemies_stack:
 	mflo $t2
 	sub $sp, $sp, $t2
 	lw $t1, enemy_stack_size
-	li $t2, 12
+	li $t2, 24
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
@@ -619,17 +626,25 @@ check_enemies_stack:
 	
 	# loop
 	check_enemy_stack_loop:
-	lw $a3, 0($sp)
+	lw $s5, 0($sp)		# direction
 	addi $sp, $sp, 4
-	lw $a2, 0($sp)
+	lw $v1, 0($sp)		# active/not active
 	addi $sp, $sp, 4
-	lw $a1, 0($sp)
+	lw $v0, 0($sp)		# upper move limit
+	addi $sp, $sp, 4
+	lw $a3, 0($sp)		# lower move limit
+	addi $sp, $sp, 4
+	lw $a2, 0($sp)		# y
+	addi $sp, $sp, 4
+	lw $a1, 0($sp)		# x
+	move $k0, $sp
 	addi $sp, $sp, 4
 	
 	subi $t4, $t4, 1
 	
 	beq $a3, $t5, skip_all_enemy_conditions
-	
+
+	# check for collision with player
 	add $t6, $s1, $t3
 	blt $t6, $a2, skip_all_enemy_conditions
 	add $t6, $a2, $t3
@@ -640,11 +655,51 @@ check_enemies_stack:
 	ble $s0, $t6, enemy_collision
 	
 	skip_all_enemy_conditions:
+	
+	# move enemy
+	move $t7, $ra
+	jal move_enemy
+	move $ra, $t7
+	
 	bgt $t4, $t5, check_enemy_stack_loop
 	
 	jr $ra
 	
+move_enemy:
+#	beq $a1, $v0, flip
+#	beq $a1, $a3, flip
+	continue_after_flip:
+	
+	beq $a1, $v0, skip_move_enemy
+	
+	move $s7, $ra
+#	lw $a0, black
+#	jal draw_enemy
+	
+	add $a1, $a1, $s5
+	lw $a0, red
+	jal draw_enemy
+	sw $a1, 0($k0)
+	
+	move $ra, $s7
+	
+	skip_move_enemy:
+	jr $ra
+	
+	flip:
+	li $s6, -1
+	mult $s6, $s5
+	mflo $s5
+	sw $s5, 0($fp)
+	j continue_after_flip
+	
 enemy_collision:
+	b print
+	continue_after_print:
+	
+	b print_stack
+	continue_after_print_stack:
+
 	lw $t1, x0
 	lw $t2, y0
 	sw $t1, player_x
@@ -722,8 +777,9 @@ print:
  	li $v0, 4
  	la $a0, newline
  	syscall
- 	
- 	jr $ra
+ 
+ 	j continue_after_print	
+# 	jr $ra
  	
 print_stack:
 	li $v0, 1
@@ -755,10 +811,27 @@ print_stack:
  	syscall
  	
  	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+   	move $a0, $s5
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+   	move $a0, $v1
+ 	syscall
+ 	
+ 	li $v0, 4
  	la $a0, newline
  	syscall
  	
- 	jr $ra
+# 	jr $ra
+	j continue_after_print_stack
 
 exit:
 	li $v0, 10 
