@@ -269,7 +269,7 @@ draw_platform:
 	mflo $t2
 	sub $sp, $sp, $t2
 
-	# push coords of each platform to stack
+	# push to stack
 	addi $sp, $sp, -4
 	sw $a1, 0($sp)
 	addi $sp, $sp, -4
@@ -325,6 +325,10 @@ draw_item:
 	addi $sp, $sp, -4
 	sw $a2, 0($sp)
 	
+	lw $t5, item_stack_size
+	addi $t5, $t5, 1
+	sw $t5, item_stack_size
+	
 	# find coord
 	move $t9, $ra
 	jal calculate_coords
@@ -369,8 +373,17 @@ draw_enemy:
 	addi $sp, $sp, -4
 	sw $a3, 0($sp)
 	
+	lw $t5, enemy_stack_size
+	addi $t5, $t5, 1
+	sw $t5, enemy_stack_size
+	
 	# find coord
 	move $t9, $ra
+	
+#	move $t8, $a0
+#	jal print_stack
+#	move $a0, $t8
+	
 	jal calculate_coords
 	move $t0, $v0
 	move $ra, $t9
@@ -403,7 +416,6 @@ draw_enemy:
 	
 	jr $ra
 	
-		
 handle_keypress:
 	# listen to key input
 	lw $s2, 4($s7)
@@ -477,7 +489,10 @@ player_hitbox:
 	bgt $s1, $a1, player_y_pb	
 	continue_after_player_y_pb:
 	
+	move $t9, $ra
 	jal check_platform_stack
+	jal check_enemies_stack
+	move $ra, $t9
 	
 	j continue_after_player_hitbox
 
@@ -556,9 +571,6 @@ check_platform_stack:
 	jr $ra
 	
 stand_on_platform:		
-#	b print
-	continue_after_print:
-		
 	sub $s4, $a2, $t3
 	sw $s4, player_y
 	
@@ -581,6 +593,70 @@ no_longer_standing_on_platform:
 	sw $t1, landed
 	
 	skip_stop_standing_on_platform:
+	jr $ra
+	
+check_enemies_stack:
+	# go to stack location
+	lw $sp, base_stack_address
+	lw $t1, platform_stack_size
+	li $t2, 12
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	li $t2, 8
+	lw $t1, item_stack_size
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	lw $t1, enemy_stack_size
+	li $t2, 12
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	
+	# load player variables
+	lw $s0, player_x
+	lw $s1, player_y
+	lw $t4, enemy_stack_size
+	li $t5, 0
+	lw $t2, player_width
+	lw $t3, player_height
+	
+	# loop
+	check_enemy_stack_loop:
+	lw $a3, 0($sp)
+	addi $sp, $sp, 4
+	lw $a2, 0($sp)
+	addi $sp, $sp, 4
+	lw $a1, 0($sp)
+	addi $sp, $sp, 4
+	
+#	move $t9, $ra
+#	jal print_stack
+#	move $ra, $t9
+	
+	subi $t4, $t4, 1
+	
+	beq $a3, $t5, skip_all_enemy_conditions
+	
+	add $t6, $s1, $t3
+	blt $t6, $a2, skip_all_enemy_conditions
+	add $t6, $a2, $t3
+	bgt $s1, $t6, skip_all_enemy_conditions
+	add $t6, $s0, $t2
+	blt $t6, $a1, skip_all_enemy_conditions
+	add $t6, $a1, $t2
+	ble $s0, $t6, enemy_collision
+	
+	skip_all_enemy_conditions:
+	bgt $t4, $t5, check_enemy_stack_loop
+	
+	jr $ra
+	
+enemy_collision:
+	b print
+	continue_after_print:
+	
 	jr $ra
 	
 clear_screen:
@@ -679,6 +755,41 @@ print:
  	syscall
  	
  	j continue_after_print
+ 	
+print_stack:
+	li $v0, 1
+   	move $a0, $sp
+ 	syscall
+
+	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+
+ 	li $v0, 1
+   	move $a0, $a1
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+   	move $a0, $a2
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+   	move $a0, $a3
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, newline
+ 	syscall
+ 	
+ 	jr $ra
 
 exit:
 	li $v0, 10 
