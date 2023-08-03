@@ -32,6 +32,7 @@ y0: .word 0
 landed: .byte 1
 air_time: .word 0
 jump_counter: .word 0
+taking_damage: .byte 0
 
 base_stack_address: .word 0
 platform_stack_size: .word 0
@@ -106,8 +107,6 @@ main:
 	b game_loop
 	
 game_loop:
-	# s0,1: player ; t9: keypress
-
 	#player stuff
 	lw $s0, player_x
 	lw $s1, player_y	
@@ -238,6 +237,11 @@ draw_player:
 	mflo $a1
 	add $t0, $t0, $a1
 	
+	li $t6, 0
+	lb $t7, taking_damage
+	bne $t6, $t7, damage_effect
+	continue_after_damage_effect:
+	
 	addi $t0, $t0, 4
 	sw $t2, ($t0)
 	addi $t0, $t0, 4
@@ -264,6 +268,12 @@ draw_player:
 	sw $t2, ($t0)
 	
 	jr $ra
+	
+	damage_effect:
+	move $t2, $t1
+	li $t6, 0
+	sb $t6, taking_damage
+	j continue_after_damage_effect
 	
 draw_platform:
 	# go to stack location
@@ -699,6 +709,9 @@ enemy_collision:
 	
 	b print_stack
 	continue_after_print_stack:
+	
+	li $t1, 1
+	sb $t1, taking_damage
 
 	lw $t1, x0
 	lw $t2, y0
