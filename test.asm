@@ -107,19 +107,19 @@ game_loop:
 
 	#player stuff
 	lw $s0, player_x
-	lw $s1, player_y
-#	sw $s0, x0
-#	sw $s1, y0
+	lw $s1, player_y	
+	
+	# store previous player location
+#	lw $a1, player_x
+#	sw $a1, x0
+#	lw $a1, player_y
+#	sw $a1, y0
 
-	# draw player
 	jal erase_player
 	jal display_player
 	
-	# store previous player location
-	lw $a1, player_x
-	sw $a1, x0
-	lw $a1, player_y
-	sw $a1, y0
+	sw $s0, x0
+	sw $s1, y0
 
 	# keypress stuff
 	li $v1, 1
@@ -141,14 +141,17 @@ game_loop:
 	lb $a1, landed
 	beq $a0, $a1, player_gravity
 	continue_after_player_gravity:
+	
+	jal player_hitbox
+	
+	# draw player
+#	jal erase_player
+#	jal display_player
 
 	# sleep
 	li $v0, 32
 	li $a0, 40
 	syscall
-	
-	b player_hitbox
-	continue_after_player_hitbox:
 
 	# repeat loop
 	b game_loop
@@ -222,6 +225,8 @@ erase_player:
 	jr $ra
 
 display_player:	
+	lw $s0, player_x
+	lw $s1, player_y
 	li $a0, 4
 	lw $t0, display
 	lw $t1, red
@@ -385,10 +390,6 @@ draw_enemy:
 	# find coord
 	move $t9, $ra
 	
-#	move $t8, $a0
-#	jal print_stack
-#	move $a0, $t8
-	
 	jal calculate_coords
 	move $t0, $v0
 	move $ra, $t9
@@ -462,6 +463,7 @@ key_P:
 	b main
 	
 player_hitbox:
+	# check screen borders
 	li $a0, 0
 	li $a1, 63
 	lw $s0, player_x
@@ -481,12 +483,13 @@ player_hitbox:
 	bgt $s1, $a1, player_y_pb	
 	continue_after_player_y_pb:
 	
+	# check entity stacks
 	move $t9, $ra
 	jal check_platform_stack
 	jal check_enemies_stack
 	move $ra, $t9
 	
-	j continue_after_player_hitbox
+	jr $ra
 
 player_x_nb:
 	sw $a0, player_x
@@ -623,10 +626,6 @@ check_enemies_stack:
 	lw $a1, 0($sp)
 	addi $sp, $sp, 4
 	
-#	move $t9, $ra
-#	jal print_stack
-#	move $ra, $t9
-	
 	subi $t4, $t4, 1
 	
 	beq $a3, $t5, skip_all_enemy_conditions
@@ -648,10 +647,8 @@ check_enemies_stack:
 enemy_collision:
 	lw $t1, x0
 	lw $t2, y0
-	sw $s1, player_x
-	sw $s2, player_y
-	
-	continue_after_print:
+	sw $t1, player_x
+	sw $t2, player_y
 	
 	jr $ra
 	
@@ -691,7 +688,7 @@ print:
  	syscall
  	
 	li $v0, 1
-   	lw $a0, player_x
+   	lw $a0, x0
  	syscall
  	
  	li $v0, 4
@@ -699,23 +696,23 @@ print:
  	syscall
 	
 	li $v0, 1
+   	lw $a0, y0
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+   	lw $a0, player_x
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
    	lw $a0, player_y
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	move $a0, $t2
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	move $a0, $t6
  	syscall
  	
  	li $v0, 4
@@ -723,34 +720,10 @@ print:
  	syscall
  	
  	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	move $a0, $a1
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	move $a0, $a2
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	move $a0, $a3
- 	syscall
- 	
- 	li $v0, 4
  	la $a0, newline
  	syscall
  	
- 	j continue_after_print
+ 	jr $ra
  	
 print_stack:
 	li $v0, 1
