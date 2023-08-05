@@ -98,7 +98,7 @@ main:
 	lw $a0, red
 	li $a1, 20
 	li $a2, 58
-	li $a3, 20
+	li $a3, 1
 	li $v0, 40
 	li $v1, 1
 	li $s5, -1
@@ -405,6 +405,9 @@ init_enemy:
 	jr $ra
 	
 draw_enemy:
+#	b print
+	continue_after_print:
+
 	# find coord
 	move $t8, $ra
 	jal calculate_coords
@@ -680,17 +683,17 @@ move_enemy:
 #	beq $a1, $a3, flip
 	continue_after_flip:
 	
-	beq $a1, $v0, skip_move_enemy
+	beq $a1, $a3, skip_move_enemy
 	
 	move $s7, $ra
-#	lw $a0, black
-#	jal draw_enemy
 	
-	add $a1, $a1, $s5
+	lw $a0, black
+	jal draw_enemy
+	
+	add $a1, $a1, $s5	
 	lw $a0, red
 	jal draw_enemy
 	sw $a1, 0($k0)
-	
 	move $ra, $s7
 	
 	skip_move_enemy:
@@ -703,10 +706,7 @@ move_enemy:
 	sw $s5, 0($fp)
 	j continue_after_flip
 	
-enemy_collision:
-	b print
-	continue_after_print:
-	
+enemy_collision:	
 	b print_stack
 	continue_after_print_stack:
 	
@@ -734,7 +734,6 @@ clear_screen:
 	jr $ra
 	
 calculate_coords:
-	# draw	
 	lw $t0, display
 	li $t2, 4
 	
@@ -745,8 +744,8 @@ calculate_coords:
 	li $t2, 256
 	
 	mult $a2, $t2
-	mflo $a2
-	add $v0, $t0, $a2
+	mflo $v0
+	add $v0, $t0, $v0
 	
 	jr $ra
 	
@@ -785,6 +784,22 @@ print:
  	
  	li $v0, 4
  	la $a0, bracket0
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+ 	move $a0, $a1
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+ 	move $a0, $a2
  	syscall
  	
  	li $v0, 4
