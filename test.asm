@@ -95,13 +95,13 @@ main:
 	jal draw_item
 	
 	# init enemy 1
-	lw $a0, red
-	li $a1, 20
-	li $a2, 58
-	li $a3, 1
-	li $v0, 40
-	li $v1, 1
-	li $s5, -1
+	lw $a0, red		# color
+	li $a1, 20		# x
+	li $a2, 58		# y
+	li $a3, 1		# lower move bound
+	li $v0, 40		# upper move bound
+	li $v1, 1		# active/inactive
+	li $s5, -1		# movement direction
 	jal init_enemy
 
 	b game_loop
@@ -405,9 +405,6 @@ init_enemy:
 	jr $ra
 	
 draw_enemy:
-#	b print
-	continue_after_print:
-
 	# find coord
 	move $t8, $ra
 	jal calculate_coords
@@ -640,17 +637,18 @@ check_enemies_stack:
 	# loop
 	check_enemy_stack_loop:
 	lw $s5, 0($sp)		# direction
+	move $fp, $sp
 	addi $sp, $sp, 4
-	lw $v1, 0($sp)		# active/not active
+	lw $k1, 0($sp)		# active/not active
 	addi $sp, $sp, 4
-	lw $v0, 0($sp)		# upper move limit
+	lw $k0, 0($sp)		# upper move limit
 	addi $sp, $sp, 4
 	lw $a3, 0($sp)		# lower move limit
 	addi $sp, $sp, 4
 	lw $a2, 0($sp)		# y
 	addi $sp, $sp, 4
 	lw $a1, 0($sp)		# x
-	move $k0, $sp
+	move $v1, $sp
 	addi $sp, $sp, 4
 	
 	subi $t4, $t4, 1
@@ -679,12 +677,10 @@ check_enemies_stack:
 	jr $ra
 	
 move_enemy:
-#	beq $a1, $v0, flip
-#	beq $a1, $a3, flip
+	beq $a1, $k0, flip
+	beq $a1, $a3, flip
 	continue_after_flip:
-	
-	beq $a1, $a3, skip_move_enemy
-	
+
 	move $s7, $ra
 	
 	lw $a0, black
@@ -693,13 +689,16 @@ move_enemy:
 	add $a1, $a1, $s5	
 	lw $a0, red
 	jal draw_enemy
-	sw $a1, 0($k0)
+	sw $a1, 0($v1)
 	move $ra, $s7
+	
+#	b print
+	continue_after_print:
 	
 	skip_move_enemy:
 	jr $ra
 	
-	flip:
+	flip:	
 	li $s6, -1
 	mult $s6, $s5
 	mflo $s5
@@ -791,7 +790,7 @@ print:
  	syscall
  	
  	li $v0, 1
- 	move $a0, $a1
+   	move $a0, $s5
  	syscall
  	
  	li $v0, 4
@@ -799,9 +798,25 @@ print:
  	syscall
  	
  	li $v0, 1
- 	move $a0, $a2
+   	move $a0, $a1
  	syscall
  	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+   	move $a0, $k0
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+   	move $a0, $a3
+ 	syscall
+  	
  	li $v0, 4
  	la $a0, newline
  	syscall
@@ -836,22 +851,6 @@ print_stack:
  	
  	li $v0, 1
    	move $a0, $a3
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	move $a0, $s5
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	move $a0, $v1
  	syscall
  	
  	li $v0, 4
