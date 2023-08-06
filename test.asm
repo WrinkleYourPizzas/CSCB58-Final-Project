@@ -368,6 +368,52 @@ draw_item:
 
 	jr $ra
 	
+draw_enemy:
+	# find coord
+	move $t8, $ra
+	jal calculate_coords
+	move $t0, $v0
+	move $ra, $t8
+	
+	# draw
+	addi $t0, $t0, 4
+	sw $a0, ($t0)
+	addi $t0, $t0, 4
+	sw $a0, ($t0)
+	addi $t0, $t0, 248
+	sw $a0, ($t0)
+	addi $t0, $t0, 4
+	sw $a0, ($t0)
+	addi $t0, $t0, 4
+	sw $a0, ($t0)
+	addi $t0, $t0, 4
+	sw $a0, ($t0)
+	addi $t0, $t0, 248
+	sw $a0, ($t0)
+	addi $t0, $t0, 4
+	sw $a0, ($t0)
+	addi $t0, $t0, 252
+	sw $a0, ($t0)
+	addi $t0, $t0, 4
+	sw $a0, ($t0)
+	addi $t0, $t0, 252
+	sw $a0, ($t0)
+	addi $t0, $t0, 4
+	sw $a0, ($t0)
+	
+	jr $ra
+	
+draw_bullet:
+	# find coord
+	move $t8, $ra
+	jal calculate_coords
+	move $t0, $v0
+	move $ra, $t8
+	
+	sw $a0, 0($t0)
+	
+	jr $ra
+	
 init_enemy:	
 	# go to stack location
 	lw $sp, base_stack_address
@@ -412,9 +458,6 @@ init_enemy:
 	jr $ra
 	
 init_bullet:
-	b print
-	continue_after_print:
-
 	# go to stack location
 	lw $sp, base_stack_address
 	lw $t1, platform_stack_size
@@ -461,52 +504,6 @@ init_bullet:
 	move $t9, $ra
 	jal draw_bullet
 	move $ra, $t9
-	
-	jr $ra
-	
-draw_enemy:
-	# find coord
-	move $t8, $ra
-	jal calculate_coords
-	move $t0, $v0
-	move $ra, $t8
-	
-	# draw
-	addi $t0, $t0, 4
-	sw $a0, ($t0)
-	addi $t0, $t0, 4
-	sw $a0, ($t0)
-	addi $t0, $t0, 248
-	sw $a0, ($t0)
-	addi $t0, $t0, 4
-	sw $a0, ($t0)
-	addi $t0, $t0, 4
-	sw $a0, ($t0)
-	addi $t0, $t0, 4
-	sw $a0, ($t0)
-	addi $t0, $t0, 248
-	sw $a0, ($t0)
-	addi $t0, $t0, 4
-	sw $a0, ($t0)
-	addi $t0, $t0, 252
-	sw $a0, ($t0)
-	addi $t0, $t0, 4
-	sw $a0, ($t0)
-	addi $t0, $t0, 252
-	sw $a0, ($t0)
-	addi $t0, $t0, 4
-	sw $a0, ($t0)
-	
-	jr $ra
-	
-draw_bullet:
-	# find coord
-	move $t8, $ra
-	jal calculate_coords
-	move $t0, $v0
-	move $ra, $t8
-	
-	sw $a0, 0($t0)
 	
 	jr $ra
 	
@@ -865,10 +862,12 @@ move_enemy:
 	lw $a0, black
 	jal draw_enemy
 	
-	add $a1, $a1, $s5	
+	add $a1, $a1, $s5
+	
 	lw $a0, red
 	jal draw_enemy
 	sw $a1, 0($v1)
+	
 	move $ra, $s7
 	
 	skip_move_enemy:
@@ -881,13 +880,17 @@ move_enemy:
 	sw $s5, 0($fp)
 	j continue_after_flip
 	
-move_bullet:
+move_bullet:	
 	move $s7, $ra
 	
 	lw $a0, black
 	jal draw_bullet
 	
-	add $a1, $a1, $s5	
+	add $a1, $a1, $a3
+	
+	#b print
+	continue_after_print:
+	
 	lw $a0, red
 	jal draw_bullet
 	sw $a1, 0($v1)
@@ -987,23 +990,7 @@ print:
  	syscall
  	
  	li $v0, 1
-   	move $a0, $s5
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
    	move $a0, $a1
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	move $a0, $k0
  	syscall
  	
  	li $v0, 4
