@@ -1,6 +1,4 @@
 .data
-string: .asciiz "\n A was pressed"
-string1: .asciiz "initial stored input: "
 bracket: .asciiz "("
 bracket0: .asciiz ")"
 comma: .asciiz ","
@@ -39,19 +37,17 @@ bullet_stack_size: .word 0
 main:
 	# default values
 	sw $sp, base_stack_address
-	li $t0, 0
-	sw $t0, player_x
-	sw $t0, platform_stack_size
-	sw $t0, item_stack_size
-	sw $t0, enemy_stack_size
-	sw $t0, bullet_stack_size
+	sw $zero, player_x
 	li $t0, 50
 	sw $t0, player_y
-	li $t0, 0
-	sw $t0, x0
-	sw $t0, y0
-	sw $t0, air_time
-	sw $t0, player_delta_y
+	sw $zero, platform_stack_size
+	sw $zero, item_stack_size
+	sw $zero, enemy_stack_size
+	sw $zero, bullet_stack_size
+	sw $zero, x0
+	sw $zero, y0
+	sw $zero, air_time
+	sw $zero, player_delta_y
 	li $t0, 1
 	sw $t0, landed
 
@@ -501,14 +497,14 @@ draw_bullet:
 key_W:
 	lw $t1, jump_counter
 	li $t2, 1
-	beq $t1, $t2, after_keypress
-	
-	sw $t2, jump_counter
+	bgt $t1, $t2, after_keypress
+	addi $t1, $t1, 1
+	sw $t1, jump_counter
 
    	li $a1, 0
    	sw $a1, landed
    	
-   	li $a1, -8
+   	li $a1, -7
    	sw $a1, player_delta_y
    	
 	b after_keypress
@@ -524,9 +520,9 @@ key_A:
 	b after_keypress
 
 key_S:
-	lw $a1, player_y
-	addi $a1, $a1, 2 
-   	sw $a1, player_y
+#	lw $a1, player_y
+#	addi $a1, $a1, 2 
+#   	sw $a1, player_y
 
 	b after_keypress
 
@@ -605,10 +601,9 @@ player_y_pb:
 	lw $a3, air_time
 	blt $a3, $a2, continue_after_player_y_pb
 	
-	li $t6, 0
-   	sw $t6, air_time
-   	sw $t6, player_delta_y
-   	sw $t6, jump_counter
+   	sw $zero, air_time
+   	sw $zero, player_delta_y
+   	sw $zero, jump_counter
    	
    	li $t6, 1
    	sb $t6, landed
@@ -664,10 +659,9 @@ stand_on_platform:
 	sub $s4, $a2, $t3
 	sw $s4, player_y
 	
-	li $t1, 0
-   	sw $t1, air_time
-   	sw $t1, player_delta_y
-   	sw $t1, jump_counter
+   	sw $zero, air_time
+   	sw $zero, player_delta_y
+   	sw $zero, jump_counter
    	
    	li $t1, 1
    	sb $t1, landed
@@ -679,8 +673,7 @@ no_longer_standing_on_platform:
 	lw $t2, player_y
 	beq $t1, $t2, skip_stop_standing_on_platform
 	
-	li $t1, 0
-	sw $t1, landed
+	sw $zero, landed
 	
 	skip_stop_standing_on_platform:
 	jr $ra
