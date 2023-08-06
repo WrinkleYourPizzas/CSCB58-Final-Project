@@ -826,17 +826,14 @@ check_bullet_stack:
 	beq $k1, $t5, skip_inactive_bullet
 	
 	# check for collision with player
+	blt $t6, $a2, continue_after_check_collision
 	add $t6, $s1, $t3
-	blt $t6, $a2, check_enemy_collision
-	add $t6, $a2, $t3
-	bgt $s1, $t6, check_enemy_collision
+	bgt $a2, $t6, continue_after_check_collision
+	blt $a1, $s0, continue_after_check_collision
 	add $t6, $s0, $t2
-	blt $t6, $a1, check_enemy_collision
-	add $t6, $a1, $t2
-	#ble $s0, $t6, take_damage
+	ble $a1, $t6, take_damage
 	
-	check_enemy_collision:
-	# check for collision with player
+	continue_after_check_collision:
 	
 	# move bullet
 	move $t7, $ra
@@ -860,6 +857,11 @@ check_bullet_stack:
 		
 		move $ra, $t7	
 		j skip_inactive_bullet
+	
+	take_damage:
+		li $t6, 1
+		sb $t6, taking_damage
+		j set_bullet_to_inactive
 	
 move_enemy:
 	beq $a1, $k0, flip
