@@ -20,6 +20,7 @@ red: .word 0xff0000
 green: .word 0x00ff00
 blue: .word 0x0000ff
 black: .word 0x000000
+white: .word 0xffffff
 display: .word 0x10008000
 
 player_x: .word 4
@@ -29,6 +30,7 @@ player_height: .word 5
 player_delta_y: .word 0
 x0: .word 0
 y0: .word 0
+player_orientation: .word 1
 landed: .byte 1
 air_time: .word 0
 jump_counter: .word 0
@@ -38,7 +40,7 @@ base_stack_address: .word 0
 platform_stack_size: .word 0
 item_stack_size: .word 0
 enemy_stack_size: .word 0
-effects_stack_size: .word 0
+bullets_stack_size: .word 0
 
 .globl main
 #.eqv display 0x10008000
@@ -48,6 +50,10 @@ main:
 	sw $sp, base_stack_address
 	li $t0, 0
 	sw $t0, player_x
+	sw $t0, platform_stack_size
+	sw $t0, item_stack_size
+	sw $t0, enemy_stack_size
+	sw $t0, bullets_stack_size
 	li $t0, 50
 	sw $t0, player_y
 	li $t0, 0
@@ -131,6 +137,7 @@ game_loop:
 	beq $t8, 0x73, key_S
 	beq $t8, 0x64, key_D
 	beq $t8, 0x70, key_P
+	beq $t8, 0x65, key_E
 	
 	after_keypress:
 	
@@ -224,7 +231,7 @@ draw_player:
 	li $a0, 4
 	lw $t0, display
 	lw $t1, red
-	lw $t2, green
+	lw $t2, white
 	lw $t3, blue
 	
 	mult $s0, $a0
@@ -239,8 +246,8 @@ draw_player:
 	
 	li $t6, 0
 	lb $t7, taking_damage
-	bne $t6, $t7, damage_effect
-	continue_after_damage_effect:
+	bne $t6, $t7, player_damage_effect
+	continue_after_player_damage_effect:
 	
 	addi $t0, $t0, 4
 	sw $t2, ($t0)
@@ -269,11 +276,11 @@ draw_player:
 	
 	jr $ra
 	
-	damage_effect:
+	player_damage_effect:
 	move $t2, $t1
 	li $t6, 0
 	sb $t6, taking_damage
-	j continue_after_damage_effect
+	j continue_after_player_damage_effect
 	
 draw_platform:
 	# go to stack location
@@ -404,6 +411,59 @@ init_enemy:
 	
 	jr $ra
 	
+init_bullet:
+	b print
+	continue_after_print:
+
+	# go to stack location
+	lw $sp, base_stack_address
+	lw $t1, platform_stack_size
+	li $t2, 12
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	li $t2, 8
+	lw $t1, item_stack_size
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	lw $t1, enemy_stack_size
+	li $t2, 24
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	lw $t1, bullets_stack_size
+	li $t2, 28
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	
+	# push to stack
+	addi $sp, $sp, -4
+	sw $a1, 0($sp)			# x
+	addi $sp, $sp, -4
+	sw $a2, 0($sp)			# y
+	addi $sp, $sp, -4
+	sw $a3, 0($sp)			# speed
+	addi $sp, $sp, -4
+	sw $k0, 0($sp)			# range
+	addi $sp, $sp, -4
+	sw $a0, 0($sp)			# colour
+	addi $sp, $sp, -4
+	sw $k1, 0($sp)			# active/inactive
+	addi $sp, $sp, -4
+	sw $v1, 0($sp)			# type
+	
+	lw $t5, bullets_stack_size
+	addi $t5, $t5, 1
+	sw $t5, bullets_stack_size
+	
+	move $t9, $ra
+	jal draw_bullet
+	move $ra, $t9
+	
+	jr $ra
+	
 draw_enemy:
 	# find coord
 	move $t8, $ra
@@ -439,6 +499,17 @@ draw_enemy:
 	
 	jr $ra
 	
+draw_bullet:
+	# find coord
+	move $t8, $ra
+	jal calculate_coords
+	move $t0, $v0
+	move $ra, $t8
+	
+	sw $a0, 0($t0)
+	
+	jr $ra
+	
 key_W:
 	lw $t1, jump_counter
 	li $t2, 1
@@ -458,6 +529,9 @@ key_A:
 	lw $a1, player_x
 	subi $a1, $a1, 2
    	sw $a1, player_x
+   	
+   	li $a1, -1
+   	sw $a1, player_orientation
 	
 	b after_keypress
 
@@ -473,11 +547,27 @@ key_D:
 	addi $a1, $a1, 2
    	sw $a1, player_x
    	
+   	li $a1, 1
+   	sw $a1, player_orientation
+   	
 	b after_keypress
 	
 key_P:
 	jal clear_screen
+	
 	b main
+	
+key_E:
+	lw $a1, player_x
+	lw $a2, player_y
+	li $a3, 2
+	li $k0, 30
+	lw $a0, red
+	li $k1, 1
+	li $v1, 0
+	jal init_bullet
+	
+	b after_keypress
 	
 player_hitbox:
 	# check screen borders
@@ -504,6 +594,7 @@ player_hitbox:
 	move $t9, $ra
 	jal check_platform_stack
 	jal check_enemies_stack
+	jal check_bullets_stack
 	move $ra, $t9
 	
 	jr $ra
@@ -639,7 +730,7 @@ check_enemies_stack:
 	lw $s5, 0($sp)		# direction
 	move $fp, $sp
 	addi $sp, $sp, 4
-	lw $k1, 0($sp)		# active/not active
+	lw $k1, 0($sp)		# active/inactive
 	addi $sp, $sp, 4
 	lw $k0, 0($sp)		# upper move limit
 	addi $sp, $sp, 4
@@ -650,6 +741,8 @@ check_enemies_stack:
 	lw $a1, 0($sp)		# x
 	move $v1, $sp
 	addi $sp, $sp, 4
+	
+	beq $k1, $t5, skip_inactive_enemy
 	
 	subi $t4, $t4, 1
 	
@@ -672,9 +765,95 @@ check_enemies_stack:
 	jal move_enemy
 	move $ra, $t7
 	
+	skip_inactive_enemy:
+	
 	bgt $t4, $t5, check_enemy_stack_loop
 	
 	jr $ra
+	
+check_bullets_stack:
+	# go to stack location
+	lw $sp, base_stack_address
+	lw $t1, platform_stack_size
+	li $t2, 12
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	li $t2, 8
+	lw $t1, item_stack_size
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	lw $t1, enemy_stack_size
+	li $t2, 24
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	lw $t1, enemy_stack_size
+	li $t2, 28
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	
+	# load player variables
+	lw $s0, player_x
+	lw $s1, player_y
+	lw $t4, enemy_stack_size
+	li $t5, 0
+	lw $t2, player_width
+	lw $t3, player_height
+	
+	# loop
+	check_bullet_stack_loop:
+	lw $s5, 0($sp)		# type
+	addi $sp, $sp, 4
+	lw $k1, 0($sp)		# active/inactive
+	addi $sp, $sp, 4
+	lw $a0, 0($sp)		# colour
+	addi $sp, $sp, 4
+	lw $k0, 0($sp)		# range
+	move $fp, $sp
+	addi $sp, $sp, 4
+	lw $a3, 0($sp)		# speed
+	addi $sp, $sp, 4
+	lw $a2, 0($sp)		# y
+	addi $sp, $sp, 4
+	lw $a1, 0($sp)		# x
+	move $v1, $sp
+	addi $sp, $sp, 4
+	
+	subi $t4, $t4, 1
+	
+	beq $k1, $t5, skip_inactive_bullet
+	beq $k0, $t5, set_bullet_to_inactive
+	
+	# check for collision with player
+	add $t6, $s1, $t3
+	blt $t6, $a2, check_enemy_collision
+	add $t6, $a2, $t3
+	bgt $s1, $t6, check_enemy_collision
+	add $t6, $s0, $t2
+	blt $t6, $a1, check_enemy_collision
+	add $t6, $a1, $t2
+	#ble $s0, $t6, take_damage
+	
+	check_enemy_collision:
+	# check for collision with player
+	
+	# move bullet
+	move $t7, $ra
+	jal move_bullet
+	move $ra, $t7	
+	
+	skip_inactive_bullet:
+	
+	bgt $t4, $t5, check_bullet_stack_loop
+	
+	jr $ra
+	
+	set_bullet_to_inactive:
+		sw $t5, 0($fp)
+		j skip_inactive_bullet
 	
 move_enemy:
 	beq $a1, $k0, flip
@@ -692,9 +871,6 @@ move_enemy:
 	sw $a1, 0($v1)
 	move $ra, $s7
 	
-#	b print
-	continue_after_print:
-	
 	skip_move_enemy:
 	jr $ra
 	
@@ -705,8 +881,23 @@ move_enemy:
 	sw $s5, 0($fp)
 	j continue_after_flip
 	
+move_bullet:
+	move $s7, $ra
+	
+	lw $a0, black
+	jal draw_bullet
+	
+	add $a1, $a1, $s5	
+	lw $a0, red
+	jal draw_bullet
+	sw $a1, 0($v1)
+	
+	move $ra, $s7
+	
+	jr $ra
+	
 enemy_collision:	
-	b print_stack
+	#b print_stack
 	continue_after_print_stack:
 	
 	li $t1, 1
@@ -716,6 +907,12 @@ enemy_collision:
 	lw $t2, y0
 	sw $t1, player_x
 	sw $t2, player_y
+	
+	jr $ra
+	
+enemy_death:
+	lw $a0, black
+	jal draw_enemy
 	
 	jr $ra
 	
