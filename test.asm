@@ -1,13 +1,3 @@
-# Bitmap Display Configuration:
-# - Unit width in pixels: 4
-# - Unit height in pixels: 4
-# - Display width in pixels: 256
-# - Display height in pixels: 256
-
-# - Base Address for Display: 0x10008000 ($gp)
-
-# t2 - register for keyboard input
-
 .data
 string: .asciiz "\n A was pressed"
 string1: .asciiz "initial stored input: "
@@ -37,6 +27,7 @@ jump_counter: .word 0
 taking_damage: .byte 0
 
 base_stack_address: .word 0
+current_stack_address: .word 0
 platform_stack_size: .word 0
 item_stack_size: .word 0
 enemy_stack_size: .word 0
@@ -153,7 +144,7 @@ game_loop:
 	
 	# sleep
 	li $v0, 32
-	li $a0, 20
+	li $a0, 40
 	syscall
 
 	# repeat loop
@@ -589,6 +580,7 @@ player_hitbox:
 	
 	# check entity stacks
 	jal check_platform_stack
+	jal check_item_stack
 	jal check_enemy_stack
 	jal check_bullet_stack
 	
@@ -631,6 +623,7 @@ check_platform_stack:
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
+	sw $sp, current_stack_address
 	
 	# load player variables
 	lw $s0, player_x
@@ -692,27 +685,30 @@ no_longer_standing_on_platform:
 	skip_stop_standing_on_platform:
 	jr $ra
 	
-check_enemy_stack:
-	b print_stack
-	continue_after_print_stack:
-	
+check_item_stack:
 	# go to stack location
-	lw $sp, base_stack_address
-	lw $t1, platform_stack_size
-	li $t2, 12
-	mult $t1, $t2
-	mflo $t2
-	sub $sp, $sp, $t2
+	lw $sp, current_stack_address
 	li $t2, 8
 	lw $t1, item_stack_size
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
+	sw $sp, current_stack_address
+	
+	jr $ra
+	
+check_enemy_stack:
+#	b print_stack
+	continue_after_print_stack:
+	
+	# go to stack location
+	lw $sp, current_stack_address
 	lw $t1, enemy_stack_size
 	li $t2, 28
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
+	sw $sp, current_stack_address
 	
 	# load player variables
 	lw $s0, player_x
@@ -816,27 +812,13 @@ check_bullet_stack:
 	beq $t4, $zero, empty_bullet_stack
 	
 	# go to stack location
-	lw $sp, base_stack_address
-	lw $t1, platform_stack_size
-	li $t2, 12
-	mult $t1, $t2
-	mflo $t2
-	sub $sp, $sp, $t2
-	li $t2, 8
-	lw $t1, item_stack_size
-	mult $t1, $t2
-	mflo $t2
-	sub $sp, $sp, $t2
-	lw $t1, enemy_stack_size
-	li $t2, 28
-	mult $t1, $t2
-	mflo $t2
-	sub $sp, $sp, $t2
+	lw $sp, current_stack_address
 	lw $t1, bullet_stack_size
 	li $t2, 28
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
+	sw $sp, current_stack_address
 	
 	# loop
 	check_bullet_stack_loop:
