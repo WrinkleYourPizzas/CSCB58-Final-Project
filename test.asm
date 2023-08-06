@@ -40,7 +40,7 @@ base_stack_address: .word 0
 platform_stack_size: .word 0
 item_stack_size: .word 0
 enemy_stack_size: .word 0
-bullets_stack_size: .word 0
+bullet_stack_size: .word 0
 
 .globl main
 #.eqv display 0x10008000
@@ -53,7 +53,7 @@ main:
 	sw $t0, platform_stack_size
 	sw $t0, item_stack_size
 	sw $t0, enemy_stack_size
-	sw $t0, bullets_stack_size
+	sw $t0, bullet_stack_size
 	li $t0, 50
 	sw $t0, player_y
 	li $t0, 0
@@ -298,10 +298,9 @@ draw_platform:
 	sw $a2, 0($sp)
 	addi $sp, $sp, -4
 	sw $a3, 0($sp)
-	
-	lw $t5, platform_stack_size
-	addi $t5, $t5, 1
-	sw $t5, platform_stack_size
+
+	addi $t1, $t1, 1
+	sw $t1, platform_stack_size
 	
 	# draw	
 	lw $t0, display
@@ -347,9 +346,8 @@ draw_item:
 	addi $sp, $sp, -4
 	sw $a2, 0($sp)
 	
-	lw $t5, item_stack_size
-	addi $t5, $t5, 1
-	sw $t5, item_stack_size
+	addi $t1, $t1, 1
+	sw $t1, item_stack_size
 	
 	# find coord
 	move $t9, $ra
@@ -366,6 +364,48 @@ draw_item:
 	addi $t1, $t1, 4
 	sw $a0, ($t1)
 
+	jr $ra
+	
+init_enemy:	
+	# go to stack location
+	lw $sp, base_stack_address
+	lw $t1, platform_stack_size
+	li $t2, 12
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	li $t2, 8
+	lw $t1, item_stack_size
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	lw $t1, enemy_stack_size
+	li $t2, 24
+	mult $t1, $t2
+	mflo $t2
+	sub $sp, $sp, $t2
+	
+	# push to stack
+	addi $sp, $sp, -4
+	sw $a1, 0($sp)
+	addi $sp, $sp, -4
+	sw $a2, 0($sp)
+	addi $sp, $sp, -4
+	sw $a3, 0($sp)
+	addi $sp, $sp, -4
+	sw $v0, 0($sp)
+	addi $sp, $sp, -4
+	sw $v1, 0($sp)
+	addi $sp, $sp, -4
+	sw $s5, 0($sp)
+	
+	addi $t1, $t1, 1
+	sw $t1, enemy_stack_size
+	
+	move $t9, $ra
+	jal draw_enemy
+	move $ra, $t9
+	
 	jr $ra
 	
 draw_enemy:
@@ -403,60 +443,6 @@ draw_enemy:
 	
 	jr $ra
 	
-draw_bullet:
-	# find coord
-	move $t8, $ra
-	jal calculate_coords
-	move $t0, $v0
-	move $ra, $t8
-	
-	sw $a0, 0($t0)
-	
-	jr $ra
-	
-init_enemy:	
-	# go to stack location
-	lw $sp, base_stack_address
-	lw $t1, platform_stack_size
-	li $t2, 12
-	mult $t1, $t2
-	mflo $t2
-	sub $sp, $sp, $t2
-	li $t2, 8
-	lw $t1, item_stack_size
-	mult $t1, $t2
-	mflo $t2
-	sub $sp, $sp, $t2
-	lw $t1, enemy_stack_size
-	li $t2, 24
-	mult $t1, $t2
-	mflo $t2
-	sub $sp, $sp, $t2
-	
-	# push to stack
-	addi $sp, $sp, -4
-	sw $a1, 0($sp)
-	addi $sp, $sp, -4
-	sw $a2, 0($sp)
-	addi $sp, $sp, -4
-	sw $a3, 0($sp)
-	addi $sp, $sp, -4
-	sw $v0, 0($sp)
-	addi $sp, $sp, -4
-	sw $v1, 0($sp)
-	addi $sp, $sp, -4
-	sw $s5, 0($sp)
-	
-	lw $t5, enemy_stack_size
-	addi $t5, $t5, 1
-	sw $t5, enemy_stack_size
-	
-	move $t9, $ra
-	jal draw_enemy
-	move $ra, $t9
-	
-	jr $ra
-	
 init_bullet:
 	# go to stack location
 	lw $sp, base_stack_address
@@ -475,7 +461,7 @@ init_bullet:
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
-	lw $t1, bullets_stack_size
+	lw $t1, bullet_stack_size
 	li $t2, 28
 	mult $t1, $t2
 	mflo $t2
@@ -497,13 +483,23 @@ init_bullet:
 	addi $sp, $sp, -4
 	sw $v1, 0($sp)			# type
 	
-	lw $t5, bullets_stack_size
-	addi $t5, $t5, 1
-	sw $t5, bullets_stack_size
+	addi $t1, $t1, 1
+	sw $t1, bullet_stack_size
 	
 	move $t9, $ra
 	jal draw_bullet
 	move $ra, $t9
+	
+	jr $ra
+	
+draw_bullet:
+	# find coord
+	move $t8, $ra
+	jal calculate_coords
+	move $t0, $v0
+	move $ra, $t8
+	
+	sw $a0, 0($t0)
 	
 	jr $ra
 	
@@ -590,8 +586,8 @@ player_hitbox:
 	# check entity stacks
 	move $t9, $ra
 	jal check_platform_stack
-	jal check_enemies_stack
-	jal check_bullets_stack
+	jal check_enemy_stack
+	jal check_bullet_stack
 	move $ra, $t9
 	
 	jr $ra
@@ -695,7 +691,7 @@ no_longer_standing_on_platform:
 	skip_stop_standing_on_platform:
 	jr $ra
 	
-check_enemies_stack:
+check_enemy_stack:
 	# go to stack location
 	lw $sp, base_stack_address
 	lw $t1, platform_stack_size
@@ -768,7 +764,18 @@ check_enemies_stack:
 	
 	jr $ra
 	
-check_bullets_stack:
+check_bullet_stack:
+	# load player variables
+	lw $s0, player_x
+	lw $s1, player_y
+	lw $t4, bullet_stack_size
+	li $t5, 0
+	li $s3, 64
+	lw $t2, player_width
+	lw $t3, player_height
+	
+	beq $t4, $t5, empty_bullet_stack
+	
 	# go to stack location
 	lw $sp, base_stack_address
 	lw $t1, platform_stack_size
@@ -786,19 +793,11 @@ check_bullets_stack:
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
-	lw $t1, enemy_stack_size
+	lw $t1, bullet_stack_size
 	li $t2, 28
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
-	
-	# load player variables
-	lw $s0, player_x
-	lw $s1, player_y
-	lw $t4, enemy_stack_size
-	li $t5, 0
-	lw $t2, player_width
-	lw $t3, player_height
 	
 	# loop
 	check_bullet_stack_loop:
@@ -821,8 +820,11 @@ check_bullets_stack:
 	
 	subi $t4, $t4, 1
 	
-	beq $k1, $t5, skip_inactive_bullet
+	beq $a1, $t5, set_bullet_to_inactive
+	beq $a1, $s3, set_bullet_to_inactive
 	beq $k0, $t5, set_bullet_to_inactive
+	
+	beq $k1, $t5, skip_inactive_bullet
 	
 	# check for collision with player
 	add $t6, $s1, $t3
@@ -845,6 +847,8 @@ check_bullets_stack:
 	skip_inactive_bullet:
 	
 	bgt $t4, $t5, check_bullet_stack_loop
+	
+	empty_bullet_stack:
 	
 	jr $ra
 	
@@ -888,7 +892,7 @@ move_bullet:
 	
 	add $a1, $a1, $a3
 	
-	#b print
+	b print
 	continue_after_print:
 	
 	lw $a0, red
@@ -991,6 +995,14 @@ print:
  	
  	li $v0, 1
    	move $a0, $a1
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+   	move $a0, $a2
  	syscall
  	
  	li $v0, 4
