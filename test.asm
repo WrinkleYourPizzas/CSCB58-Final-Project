@@ -108,6 +108,7 @@ main:
 	li $v0, 40		# upper move bound
 	li $v1, 1		# active/inactive
 	li $s5, -1		# movement direction
+	li $s6, 10		# shoot cooldown
 	jal init_enemy
 
 	b game_loop
@@ -147,11 +148,12 @@ game_loop:
 	beq $a0, $a1, player_gravity
 	continue_after_player_gravity:
 	
-	jal player_hitbox
+	j player_hitbox
+	continue_after_player_hitbox:
 	
 	# sleep
 	li $v0, 32
-	li $a0, 40
+	li $a0, 20
 	syscall
 
 	# repeat loop
@@ -380,7 +382,7 @@ init_enemy:
 	mflo $t2
 	sub $sp, $sp, $t2
 	lw $t1, enemy_stack_size
-	li $t2, 24
+	li $t2, 28
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
@@ -396,6 +398,8 @@ init_enemy:
 	sw $v0, 0($sp)
 	addi $sp, $sp, -4
 	sw $v1, 0($sp)
+	addi $sp, $sp, -4
+	sw $s5, 0($sp)
 	addi $sp, $sp, -4
 	sw $s5, 0($sp)
 	
@@ -457,7 +461,7 @@ init_bullet:
 	mflo $t2
 	sub $sp, $sp, $t2
 	lw $t1, enemy_stack_size
-	li $t2, 24
+	li $t2, 28
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
@@ -584,13 +588,11 @@ player_hitbox:
 	continue_after_player_y_pb:
 	
 	# check entity stacks
-	move $t9, $ra
 	jal check_platform_stack
 	jal check_enemy_stack
 	jal check_bullet_stack
-	move $ra, $t9
 	
-	jr $ra
+	j continue_after_player_hitbox
 
 player_x_nb:
 	sw $a0, player_x
@@ -634,13 +636,12 @@ check_platform_stack:
 	lw $s0, player_x
 	lw $s1, player_y
 	lw $t4, platform_stack_size
-	li $t5, 0
 	lw $t2, player_width
 	lw $t3, player_height
 	move $s4, $sp
 	
 	lw $t6, player_delta_y
-	blt $t6, $t5, skip_platform_check
+	blt $t6, $zero, skip_platform_check
 
 	check_stack_loop:
 	lw $a3, 0($s4)
@@ -660,7 +661,7 @@ check_platform_stack:
 	ble $s0, $a3, stand_on_platform
 	
 	skip_all_conditions:
-	bgt $t4, $t5, check_stack_loop
+	bgt $t4, $zero, check_stack_loop
 	
 	b no_longer_standing_on_platform
 	skip_platform_check:
@@ -692,6 +693,9 @@ no_longer_standing_on_platform:
 	jr $ra
 	
 check_enemy_stack:
+	b print_stack
+	continue_after_print_stack:
+	
 	# go to stack location
 	lw $sp, base_stack_address
 	lw $t1, platform_stack_size
@@ -705,7 +709,7 @@ check_enemy_stack:
 	mflo $t2
 	sub $sp, $sp, $t2
 	lw $t1, enemy_stack_size
-	li $t2, 24
+	li $t2, 28
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
@@ -714,12 +718,14 @@ check_enemy_stack:
 	lw $s0, player_x
 	lw $s1, player_y
 	lw $t4, enemy_stack_size
-	li $t5, 0
 	lw $t2, player_width
 	lw $t3, player_height
 	
 	# loop
 	check_enemy_stack_loop:
+	lw $s6, 0($sp)		# shoot_cd
+	move $t5, $sp
+	addi $sp, $sp, 4
 	lw $s5, 0($sp)		# direction
 	move $fp, $sp
 	addi $sp, $sp, 4
@@ -732,14 +738,13 @@ check_enemy_stack:
 	lw $a2, 0($sp)		# y
 	addi $sp, $sp, 4
 	lw $a1, 0($sp)		# x
-	move $v1, $sp
 	addi $sp, $sp, 4
 	
-	beq $k1, $t5, skip_inactive_enemy
+	beq $k1, $zero, skip_inactive_enemy
 	
 	subi $t4, $t4, 1
 	
-	beq $a3, $t5, skip_all_enemy_conditions
+	beq $a3, $zero, skip_all_enemy_conditions
 
 	# check for collision with player
 	add $t6, $s1, $t3
@@ -753,6 +758,34 @@ check_enemy_stack:
 	
 	skip_all_enemy_conditions:
 	
+	# shoot at player if on same y plane
+	bne $a2, $s1, skip_shoot_at_player
+	bgt $s6, $zero, skip_shoot_at_player
+	
+	# reset shoot cd
+	li $s6, 6
+	sw $s6, 0($t5)
+	
+	li $a3, 2
+	li $k0, 30
+	lw $a0, red
+	li $k1, 1
+	li $v1, 0
+	
+	blt $s0, $a1, set_bullet_direction_left
+	continue_after_set_bullet_direction:
+	
+	move $t7, $ra
+	jal init_bullet
+	move $ra, $t7
+	
+	j skip_inactive_enemy
+	
+	skip_shoot_at_player:
+	
+	subi $s6, $s6, 1
+	sw $s6, 0($t5)
+	
 	# move enemy
 	move $t7, $ra
 	jal move_enemy
@@ -760,21 +793,27 @@ check_enemy_stack:
 	
 	skip_inactive_enemy:
 	
-	bgt $t4, $t5, check_enemy_stack_loop
+	bgt $t4, $zero, check_enemy_stack_loop
+	
+	#b print
+	continue_after_print:
 	
 	jr $ra
+	
+	set_bullet_direction_left:
+		li $t1, -1
+		mult $a3, $t1
+		mflo $a3
+		j continue_after_set_bullet_direction
 	
 check_bullet_stack:
 	# load player variables
 	lw $s0, player_x
 	lw $s1, player_y
 	lw $t4, bullet_stack_size
-	li $t5, 0
 	li $s3, 64
-	lw $t2, player_width
-	lw $t3, player_height
 	
-	beq $t4, $t5, empty_bullet_stack
+	beq $t4, $zero, empty_bullet_stack
 	
 	# go to stack location
 	lw $sp, base_stack_address
@@ -789,7 +828,7 @@ check_bullet_stack:
 	mflo $t2
 	sub $sp, $sp, $t2
 	lw $t1, enemy_stack_size
-	li $t2, 24
+	li $t2, 28
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
@@ -820,13 +859,16 @@ check_bullet_stack:
 	
 	subi $t4, $t4, 1
 	
-	beq $a1, $t5, set_bullet_to_inactive
+	ble $a1, $zero, set_bullet_to_inactive
 	beq $a1, $s3, set_bullet_to_inactive
-	beq $k0, $t5, set_bullet_to_inactive
-	beq $k1, $t5, skip_inactive_bullet
+	beq $k0, $zero, set_bullet_to_inactive
+	beq $k1, $zero, skip_inactive_bullet
 	
 	# check for collision with player
-	blt $t6, $a2, continue_after_check_collision
+	lw $t2, player_width
+	lw $t3, player_height
+	
+	blt $a2, $s1, continue_after_check_collision
 	add $t6, $s1, $t3
 	bgt $a2, $t6, continue_after_check_collision
 	blt $a1, $s0, continue_after_check_collision
@@ -842,7 +884,7 @@ check_bullet_stack:
 	
 	skip_inactive_bullet:
 	
-	bgt $t4, $t5, check_bullet_stack_loop
+	bgt $t4, $zero, check_bullet_stack_loop
 	
 	empty_bullet_stack:
 	
@@ -851,7 +893,7 @@ check_bullet_stack:
 	set_bullet_to_inactive:
 		move $t7, $ra
 		
-		sw $t5, 0($fp)
+		sw $zero, 0($fp)
 		lw $a0, black
 		jal draw_bullet
 		
@@ -876,9 +918,10 @@ move_enemy:
 	add $a1, $a1, $s5
 	
 	lw $a0, red
+	subi $sp, $sp, 4
 	jal draw_enemy
-	sw $a1, 0($v1)
-	
+	sw $a1, 0($sp)
+	addi $sp, $sp, 4
 	move $ra, $s7
 	
 	skip_move_enemy:
@@ -899,9 +942,6 @@ move_bullet:
 	
 	add $a1, $a1, $a3
 	
-	b print
-	continue_after_print:
-	
 	lw $a0, red
 	jal draw_bullet
 	sw $a1, 0($v1)
@@ -910,10 +950,7 @@ move_bullet:
 	
 	jr $ra
 	
-enemy_collision:	
-	#b print_stack
-	continue_after_print_stack:
-	
+enemy_collision:		
 	li $t1, 1
 	sb $t1, taking_damage
 
@@ -960,66 +997,10 @@ calculate_coords:
 	jr $ra
 	
 print:
-	li $v0, 4
- 	la $a0, bracket
- 	syscall
- 	
 	li $v0, 1
-   	lw $a0, x0
+   	move $a0, $ra
  	syscall
  	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
-	
-	li $v0, 1
-   	lw $a0, y0
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	lw $a0, player_x
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	lw $a0, player_y
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, bracket0
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	move $a0, $a1
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	move $a0, $a2
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	move $a0, $a3
- 	syscall
-  	
  	li $v0, 4
  	la $a0, newline
  	syscall
@@ -1029,31 +1010,7 @@ print:
  	
 print_stack:
 	li $v0, 1
-   	move $a0, $sp
- 	syscall
-
-	li $v0, 4
- 	la $a0, comma
- 	syscall
-
- 	li $v0, 1
-   	move $a0, $a1
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	move $a0, $a2
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	move $a0, $a3
+   	move $a0, $ra
  	syscall
  	
  	li $v0, 4
