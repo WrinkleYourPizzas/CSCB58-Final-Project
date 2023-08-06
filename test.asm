@@ -823,7 +823,6 @@ check_bullet_stack:
 	beq $a1, $t5, set_bullet_to_inactive
 	beq $a1, $s3, set_bullet_to_inactive
 	beq $k0, $t5, set_bullet_to_inactive
-	
 	beq $k1, $t5, skip_inactive_bullet
 	
 	# check for collision with player
@@ -853,7 +852,13 @@ check_bullet_stack:
 	jr $ra
 	
 	set_bullet_to_inactive:
+		move $t7, $ra
+		
 		sw $t5, 0($fp)
+		lw $a0, black
+		jal draw_bullet
+		
+		move $ra, $t7	
 		j skip_inactive_bullet
 	
 move_enemy:
