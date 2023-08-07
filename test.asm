@@ -797,8 +797,8 @@ check_enemy_stack:
 	skip_all_enemy_conditions:
 	
 	# shoot at player if on same y plane and player is targettable
+	bgt $s6, $zero, decrease_shoot_cd
 	bne $a2, $s1, skip_shoot_at_player
-	bgt $s6, $zero, skip_shoot_at_player
 	lb $t6, player_targettable
 	beq $t6, $zero, skip_shoot_at_player
 	
@@ -823,9 +823,6 @@ check_enemy_stack:
 	
 	skip_shoot_at_player:
 	
-	subi $s6, $s6, 1
-	sw $s6, 0($t5)
-	
 	# move enemy
 	move $t7, $ra
 	jal move_enemy
@@ -845,6 +842,11 @@ check_enemy_stack:
 		mult $a3, $t1
 		mflo $a3
 		j continue_after_set_bullet_direction
+	
+	decrease_shoot_cd:
+		subi $s6, $s6, 1
+		sw $s6, 0($t5)
+		j skip_inactive_enemy
 	
 check_bullet_stack:
 	# load player variables
@@ -869,6 +871,7 @@ check_bullet_stack:
 	lw $s5, 0($sp)		# type
 	addi $sp, $sp, 4
 	lw $k1, 0($sp)		# active/inactive
+	beq $k1, $zero, skip_inactive_bullet
 	addi $sp, $sp, 4
 	lw $a0, 0($sp)		# colour
 	addi $sp, $sp, 4
@@ -891,6 +894,9 @@ check_bullet_stack:
 	beq $k1, $zero, skip_inactive_bullet
 	
 	# check for collision with player
+	lw $t2, player_targettable
+	beq $t2, $zero, continue_after_check_collision
+	
 	lw $t2, player_width
 	lw $t3, player_height
 	
