@@ -190,7 +190,8 @@ player_gravity:
 erase_player:
 	li $a0, 4
 	lw $t0, display
-	lw $t1, black
+	lw $t1, green
+	lw $t2, black
 	lw $t6, x0
 	lw $t7, y0
 	
@@ -204,29 +205,65 @@ erase_player:
 	add $t0, $t0, $a1
 	
 	addi $t0, $t0, 4
-	sw $t1, ($t0)
+	lw $k0, ($t0)
+	beq $k0, $t1, player_erase_1
+	sw $t2, ($t0)
 	addi $t0, $t0, 4
-	sw $t1, ($t0)
+	player_erase_1:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_erase_2
+	sw $t2, ($t0)
 	addi $t0, $t0, 248
-	sw $t1, ($t0)
+	player_erase_2:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_erase_3
+	sw $t2, ($t0)
 	addi $t0, $t0, 4
-	sw $t1, ($t0)
+	player_erase_3:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_erase_4
+	sw $t2, ($t0)
 	addi $t0, $t0, 4
-	sw $t1, ($t0)
+	player_erase_4:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_erase_5
+	sw $t2, ($t0)
 	addi $t0, $t0, 4
-	sw $t1, ($t0)
+	player_erase_5:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_erase_6
+	sw $t2, ($t0)
 	addi $t0, $t0, 248
-	sw $t1, ($t0)
+	player_erase_6:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_erase_7
+	sw $t2, ($t0)
 	addi $t0, $t0, 4
-	sw $t1, ($t0)
+	player_erase_7:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_erase_8
+	sw $t2, ($t0)
 	addi $t0, $t0, 252
-	sw $t1, ($t0)
+	player_erase_8:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_erase_9
+	sw $t2, ($t0)
 	addi $t0, $t0, 4
-	sw $t1, ($t0)
+	player_erase_9:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_erase_10
+	sw $t2, ($t0)
 	addi $t0, $t0, 252
-	sw $t1, ($t0)
+	player_erase_10:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_erase_11
+	sw $t2, ($t0)
 	addi $t0, $t0, 4
-	sw $t1, ($t0)
+	player_erase_11:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_erase_12
+	sw $t2, ($t0)
+	player_erase_12:
 	
 	jr $ra
 
@@ -235,7 +272,7 @@ draw_player:
 	lw $s1, player_y
 	li $a0, 4
 	lw $t0, display
-	lw $t1, red
+	lw $t1, green
 	lw $t2, white
 	lw $t3, blue
 	
@@ -255,34 +292,70 @@ draw_player:
 	continue_after_player_damage_effect:
 	
 	addi $t0, $t0, 4
+	lw $k0, ($t0)
+	beq $k0, $t1, player_draw_1
 	sw $t2, ($t0)
 	addi $t0, $t0, 4
+	player_draw_1:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_draw_2
 	sw $t2, ($t0)
 	addi $t0, $t0, 248
+	player_draw_2:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_draw_3
 	sw $t2, ($t0)
 	addi $t0, $t0, 4
+	player_draw_3:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_draw_4
 	sw $t2, ($t0)
 	addi $t0, $t0, 4
+	player_draw_4:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_draw_5
 	sw $t2, ($t0)
 	addi $t0, $t0, 4
+	player_draw_5:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_draw_6
 	sw $t2, ($t0)
 	addi $t0, $t0, 248
+	player_draw_6:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_draw_7
 	sw $t2, ($t0)
 	addi $t0, $t0, 4
+	player_draw_7:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_draw_8
 	sw $t2, ($t0)
 	addi $t0, $t0, 252
+	player_draw_8:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_draw_9
 	sw $t2, ($t0)
 	addi $t0, $t0, 4
+	player_draw_9:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_draw_10
 	sw $t2, ($t0)
 	addi $t0, $t0, 252
+	player_draw_10:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_draw_11
 	sw $t2, ($t0)
 	addi $t0, $t0, 4
+	player_draw_11:
+	lw $k0, ($t0)
+	beq $k0, $t1, player_draw_12
 	sw $t2, ($t0)
+	player_draw_12:
 	
 	jr $ra
 	
 	player_damage_effect:
-		move $t2, $t1
+		lw $t2, red
 		sb $zero, taking_damage
 	
 		lw $t6, player_health
@@ -921,7 +994,7 @@ check_bullet_stack:
 	empty_bullet_stack:
 	
 	jr $ra
-	
+		
 	set_bullet_to_inactive:
 		move $t7, $ra
 		
