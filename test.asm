@@ -12,6 +12,7 @@ white: .word 0xffffff
 display: .word 0x10008000
 
 player_health: .word 100
+player_targettable: .byte 1
 player_x: .word 4
 player_y: .word 5
 player_width: .word 4
@@ -112,14 +113,16 @@ main:
 
 	b game_loop
 	
-game_loop:
-	#player stuff
-	lw $s0, player_x
-	lw $s1, player_y	
-	
+game_loop:	
 	# draw player
 	jal erase_player
+	
+	lb $s0, player_targettable
+	beq $zero, $s0, skip_draw_player
+	
 	jal draw_player
+	
+	skip_draw_player:
 	
 	# store previous player location
 	sw $s0, x0
@@ -138,6 +141,7 @@ game_loop:
 	beq $t8, 0x64, key_D
 	beq $t8, 0x70, key_P
 	beq $t8, 0x65, key_E
+	beq $t8, 0x71, key_Q
 	
 	after_keypress:
 	
@@ -373,7 +377,7 @@ draw_item:
 
 	jr $ra
 	
-init_enemy:	
+init_enemy:
 	# go to stack location
 	lw $sp, base_stack_address
 	lw $t1, platform_stack_size
@@ -513,6 +517,9 @@ draw_bullet:
 	jr $ra
 	
 key_W:
+	lb $a1, player_targettable
+	beq $zero, $a1, after_keypress
+	
 	lw $t1, jump_counter
 	li $t2, 1
 	bgt $t1, $t2, after_keypress
@@ -528,6 +535,9 @@ key_W:
 	b after_keypress
 
 key_A:
+	lb $a1, player_targettable
+	beq $zero, $a1, after_keypress
+	
 	lw $a1, player_x
 	subi $a1, $a1, 2
    	sw $a1, player_x
@@ -545,6 +555,9 @@ key_S:
 	b after_keypress
 
 key_D:	
+	lb $a1, player_targettable
+	beq $zero, $a1, after_keypress
+	
 	lw $a1, player_x
 	addi $a1, $a1, 2
    	sw $a1, player_x
@@ -560,6 +573,9 @@ key_P:
 	b main
 	
 key_E:
+	lb $a1, player_targettable
+	beq $zero, $a1, after_keypress
+
 	lw $a1, player_x
 	lw $a2, player_y
 	li $a3, 2
@@ -568,6 +584,23 @@ key_E:
 	li $k1, 1
 	li $v1, 0
 	jal init_bullet
+	
+	b after_keypress
+	
+key_Q:
+	lb $a1, player_targettable
+	beq $a1, $zero, set_to_one
+	
+	sb $zero, player_targettable
+	
+	b print_stack
+	continue_after_print_stack:
+	
+	b after_keypress
+	
+	set_to_one:
+	li $a2, 1
+	sb $a2, player_targettable
 	
 	b after_keypress
 	
@@ -763,9 +796,11 @@ check_enemy_stack:
 	
 	skip_all_enemy_conditions:
 	
-	# shoot at player if on same y plane
+	# shoot at player if on same y plane and player is targettable
 	bne $a2, $s1, skip_shoot_at_player
 	bgt $s6, $zero, skip_shoot_at_player
+	lb $t6, player_targettable
+	beq $t6, $zero, skip_shoot_at_player
 	
 	# reset shoot cd
 	li $s6, 10
@@ -941,14 +976,14 @@ move_bullet:
 	
 	jr $ra
 	
-enemy_collision:
-	b print_stack
-	continue_after_print_stack:
-	
+enemy_collision:	
 	lw $t1, x0
 	lw $t2, y0
 	sw $t1, player_x
 	sw $t2, player_y
+	
+	li $t1, 1
+	sb $t1, player_targettable
 	
 	jr $ra
 	
@@ -1001,35 +1036,7 @@ print:
  	
 print_stack:
 	li $v0, 1
-   	move $a0, $a1
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	move $a0, $a2
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	move $a0, $s0
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
- 	syscall
- 	
- 	li $v0, 1
-   	move $a0, $s1
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, comma
+   	lb $a0, player_targettable
  	syscall
  	
  	li $v0, 4
