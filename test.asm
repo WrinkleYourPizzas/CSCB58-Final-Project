@@ -11,6 +11,7 @@ black: .word 0x000000
 white: .word 0xffffff
 display: .word 0x10008000
 
+player_health: .word 100
 player_x: .word 4
 player_y: .word 5
 player_width: .word 4
@@ -95,7 +96,18 @@ main:
 	li $v0, 40		# upper move bound
 	li $v1, 1		# active/inactive
 	li $s5, -1		# movement direction
-	li $s6, 10		# shoot cooldown
+	li $s6, 30		# shoot cooldown
+	jal init_enemy
+	
+	# init enemy 2
+	lw $a0, red		# color
+	li $a1, 40		# x
+	li $a2, 30		# y
+	li $a3, 30		# lower move bound
+	li $v0, 60		# upper move bound
+	li $v1, 1		# active/inactive
+	li $s5, -1		# movement direction
+	li $s6, 30		# shoot cooldown
 	jal init_enemy
 
 	b game_loop
@@ -266,10 +278,16 @@ draw_player:
 	jr $ra
 	
 	player_damage_effect:
-	move $t2, $t1
-	li $t6, 0
-	sb $t6, taking_damage
-	j continue_after_player_damage_effect
+		move $t2, $t1
+		sb $zero, taking_damage
+	
+		lw $t6, player_health
+		subi $t6, $t6, 10
+		sw $t6, player_health
+		
+		ble $t6, $zero, exit
+	
+		j continue_after_player_damage_effect
 	
 draw_platform:
 	# go to stack location
@@ -678,7 +696,7 @@ no_longer_standing_on_platform:
 	skip_stop_standing_on_platform:
 	jr $ra
 	
-check_item_stack:
+check_item_stack:	
 	# go to stack location
 	lw $sp, current_stack_address
 	li $t2, 8
@@ -690,10 +708,7 @@ check_item_stack:
 	
 	jr $ra
 	
-check_enemy_stack:
-#	b print_stack
-	continue_after_print_stack:
-	
+check_enemy_stack:	
 	# go to stack location
 	lw $sp, current_stack_address
 	lw $t1, enemy_stack_size
@@ -707,8 +722,6 @@ check_enemy_stack:
 	lw $s0, player_x
 	lw $s1, player_y
 	lw $t4, enemy_stack_size
-	lw $t2, player_width
-	lw $t3, player_height
 	
 	# loop
 	check_enemy_stack_loop:
@@ -736,6 +749,9 @@ check_enemy_stack:
 	beq $a3, $zero, skip_all_enemy_conditions
 
 	# check for collision with player
+	lw $t2, player_width
+	lw $t3, player_height
+	
 	add $t6, $s1, $t3
 	blt $t6, $a2, skip_all_enemy_conditions
 	add $t6, $a2, $t3
@@ -752,7 +768,7 @@ check_enemy_stack:
 	bgt $s6, $zero, skip_shoot_at_player
 	
 	# reset shoot cd
-	li $s6, 6
+	li $s6, 10
 	sw $s6, 0($t5)
 	
 	li $a3, 2
@@ -925,10 +941,10 @@ move_bullet:
 	
 	jr $ra
 	
-enemy_collision:		
-	li $t1, 1
-	sb $t1, taking_damage
-
+enemy_collision:
+	b print_stack
+	continue_after_print_stack:
+	
 	lw $t1, x0
 	lw $t2, y0
 	sw $t1, player_x
@@ -985,7 +1001,35 @@ print:
  	
 print_stack:
 	li $v0, 1
-   	move $a0, $ra
+   	move $a0, $a1
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+   	move $a0, $a2
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+   	move $a0, $s0
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+   	move $a0, $s1
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
  	syscall
  	
  	li $v0, 4
