@@ -675,11 +675,17 @@ draw_bullet:
 	# find coord
 	move $t8, $ra
 	jal calculate_coords
-	move $t0, $v0
 	move $ra, $t8
 	
-	sw $a0, 0($t0)
+	lw $t0, green
+	lw $s0, 0($v0)
+	beq $t0, $s0, skip_draw_bullet
+	lw $t0, yellow
+	beq $t0, $s0, skip_draw_bullet
 	
+	sw $a0, 0($v0)
+	
+	skip_draw_bullet:
 	jr $ra
 	
 key_W:
@@ -1068,7 +1074,7 @@ check_bullet_stack:
 	lw $s5, 0($sp)		# type
 	addi $sp, $sp, 4
 	lw $k1, 0($sp)		# active/inactive
-	beq $k1, $zero, skip_inactive_bullet
+	move $s0, $sp
 	addi $sp, $sp, 4
 	lw $a0, 0($sp)		# colour
 	addi $sp, $sp, 4
@@ -1084,6 +1090,8 @@ check_bullet_stack:
 	addi $sp, $sp, 4
 	
 	subi $t4, $t4, 1
+	
+	beq $k1, $zero, skip_inactive_bullet
 	
 	ble $a1, $zero, set_bullet_to_inactive
 	beq $a1, $s3, set_bullet_to_inactive
@@ -1122,7 +1130,7 @@ check_bullet_stack:
 	set_bullet_to_inactive:
 		move $t7, $ra
 		
-		sw $zero, 0($fp)
+		sw $zero, 0($s0)
 		lw $a0, black
 		jal draw_bullet
 		
@@ -1177,6 +1185,7 @@ move_bullet:
 	
 	move $ra, $s7
 	
+	stop_drawing_bullet:
 	jr $ra
 	
 enemy_collision:	
