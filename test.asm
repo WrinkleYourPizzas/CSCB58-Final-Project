@@ -9,6 +9,8 @@ green: .word 0x00ff00
 blue: .word 0x0000ff
 black: .word 0x000000
 white: .word 0xffffff
+yellow: .word 0xffff00
+gray: .word 0x808080
 display: .word 0x10008000
 
 player_health: .word 100
@@ -25,6 +27,7 @@ landed: .byte 1
 air_time: .word 0
 jump_counter: .word 0
 taking_damage: .byte 0
+player_shooting: .word 0
 
 base_stack_address: .word 0
 current_stack_address: .word 0
@@ -34,7 +37,6 @@ enemy_stack_size: .word 0
 bullet_stack_size: .word 0
 
 .globl main
-#.eqv display 0x10008000
 .text
 main:
 	# default values
@@ -129,6 +131,9 @@ game_loop:
 	sw $s1, y0
 
 	# keypress stuff
+	lw $k0, player_shooting
+	bgt $k0, $zero, increment_player_shooting
+	
 	li $v1, 1
 	li $s7, 0xffff0000
 	lw $t8, 0($s7)
@@ -154,6 +159,16 @@ game_loop:
 	j player_hitbox
 	continue_after_player_hitbox:
 	
+	# player shooting effects
+	lw $s1, player_shooting
+	li $s2, 2
+	beq $s1, $s2, draw_player_bullet
+	continue_after_draw_player_bullet:
+	
+	li $s2, 5
+	beq $s1, $s2, erase_player_bullet
+	continue_after_erase_player_bullet:
+	
 	# sleep
 	li $v0, 32
 	li $a0, 40
@@ -161,6 +176,11 @@ game_loop:
 
 	# repeat loop
 	b game_loop
+
+increment_player_shooting:
+	addi $k0, $k0, 1
+	sw $k0, player_shooting
+	j after_keypress
 
 player_gravity:
 	li $t4, 1
@@ -529,6 +549,43 @@ draw_enemy:
 	
 	jr $ra
 	
+draw_player_bullet:
+	lw $a1, player_x
+	lw $a2, player_y
+	lw $t3, yellow
+	lw $t5, green
+	li $t4, 63
+	
+	draw_player_bullet_loop:
+		jal calculate_coords
+		lw $k0, 0($v0)
+		beq $k0, $t5, skip_draw_player_bullet
+		sw $t3, 0($v0)
+		
+		skip_draw_player_bullet:
+		addi $a1, $a1, 1
+		bge $a1, $t4, continue_after_draw_player_bullet
+		j draw_player_bullet_loop
+		
+erase_player_bullet:
+	lw $a1, player_x
+	lw $a2, player_y
+	lw $t3, black
+	lw $t5, green
+	li $t4, 63
+	
+	erase_player_bullet_loop:
+		jal calculate_coords
+		lw $k0, 0($v0)
+		beq $k0, $t5, skip_erase_player_bullet
+		sw $t3, 0($v0)
+		
+		skip_erase_player_bullet:
+		addi $a1, $a1, 1
+		bge $a1, $t4, continue_after_erase_player_bullet
+		sw $zero, player_shooting
+		j erase_player_bullet_loop
+	
 init_bullet:
 	# go to stack location
 	lw $sp, base_stack_address
@@ -646,17 +703,18 @@ key_P:
 	b main
 	
 key_E:
+	lb $a2, landed
+	beq $a2, $zero, after_keypress
+
 	lb $a1, player_targettable
 	beq $zero, $a1, after_keypress
 
-	lw $a1, player_x
-	lw $a2, player_y
-	li $a3, 2
-	li $k0, 30
-	lw $a0, red
-	li $k1, 1
-	li $v1, 0
-	jal init_bullet
+	lw $a1, player_shooting
+	
+	bgt $a1, $zero, after_keypress
+	
+	addi $a1, $a1, 1
+	sw $a1, player_shooting
 	
 	b after_keypress
 	
@@ -665,9 +723,6 @@ key_Q:
 	beq $a1, $zero, set_to_one
 	
 	sb $zero, player_targettable
-	
-	b print_stack
-	continue_after_print_stack:
 	
 	b after_keypress
 	
@@ -1124,6 +1179,7 @@ print_stack:
  	
 # 	jr $ra
 	j continue_after_print_stack
+	continue_after_print_stack:
 
 exit:
 	li $v0, 10 
