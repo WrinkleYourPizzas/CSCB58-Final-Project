@@ -555,6 +555,7 @@ draw_player_bullet:
 	lw $t3, yellow
 	lw $t5, green
 	li $t4, 63
+	lw $t6, player_orientation
 	
 	draw_player_bullet_loop:
 		jal calculate_coords
@@ -563,8 +564,14 @@ draw_player_bullet:
 		sw $t3, 0($v0)
 		
 		skip_draw_player_bullet:
-		addi $a1, $a1, 1
+		add $a1, $a1, $t6
 		bge $a1, $t4, continue_after_draw_player_bullet
+		ble $a1, $zero, continue_after_draw_player_bullet
+		
+		li $v0, 32
+		li $a0, 1
+		syscall
+		
 		j draw_player_bullet_loop
 		
 erase_player_bullet:
@@ -573,6 +580,7 @@ erase_player_bullet:
 	lw $t3, black
 	lw $t5, green
 	li $t4, 63
+	lw $t6, player_orientation
 	
 	erase_player_bullet_loop:
 		jal calculate_coords
@@ -581,9 +589,15 @@ erase_player_bullet:
 		sw $t3, 0($v0)
 		
 		skip_erase_player_bullet:
-		addi $a1, $a1, 1
+		add $a1, $a1, $t6
 		bge $a1, $t4, continue_after_erase_player_bullet
+		ble $a1, $zero, continue_after_erase_player_bullet
 		sw $zero, player_shooting
+		
+		li $v0, 32
+		li $a0, 1
+		syscall
+		
 		j erase_player_bullet_loop
 	
 init_bullet:
