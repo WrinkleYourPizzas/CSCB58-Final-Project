@@ -63,21 +63,42 @@ main:
 	lw $a0, green
 	li $a1, 6
 	li $a2, 55
-	li $a3, 11
+	li $a3, 30
 	jal draw_platform
 	
 	# draw platform 2	
 	lw $a0, green
-	li $a1, 15
-	li $a2, 50
-	li $a3, 20
+	li $a1, 35
+	li $a2, 45
+	li $a3, 60
 	jal draw_platform
 	
 	# draw platform 3	
 	lw $a0, green
-	li $a1, 22
-	li $a2, 45
+	li $a1, 10
+	li $a2, 35
 	li $a3, 27
+	jal draw_platform
+	
+	# draw platform 4	
+	lw $a0, green
+	li $a1, 0
+	li $a2, 30
+	li $a3, 15
+	jal draw_platform
+	
+	# draw platform 5
+	lw $a0, green
+	li $a1, 10
+	li $a2, 20
+	li $a3, 20
+	jal draw_platform
+	
+	# draw platform 6
+	lw $a0, green
+	li $a1, 20
+	li $a2, 10
+	li $a3, 60
 	jal draw_platform
 	
 	# init item 1
