@@ -116,7 +116,7 @@ main:
 
 	b game_loop
 	
-game_loop:	
+game_loop:		
 	# draw player
 	jal erase_player
 	
@@ -718,8 +718,8 @@ key_P:
 	b main
 	
 key_E:
-	lb $a2, player_delta_y
-	bne $a2, $zero, after_keypress
+	lb $a2, landed
+	beq $a2, $zero, after_keypress
 
 	lb $a1, player_targettable
 	beq $zero, $a1, after_keypress
@@ -789,14 +789,15 @@ player_y_pb:
 	
 	li $a2, 1
 	lw $a3, air_time
+   	sb $a2, landed
 	blt $a3, $a2, continue_after_player_y_pb
 	
    	sw $zero, air_time
    	sw $zero, player_delta_y
    	sw $zero, jump_counter
-   	
-   	li $t6, 1
-   	sb $t6, landed
+	
+	b print
+	continue_after_print:
 	
 	j continue_after_player_y_pb
 
@@ -817,6 +818,9 @@ check_platform_stack:
 	lw $t2, player_width
 	lw $t3, player_height
 	move $s4, $sp
+	
+	li $t6, 58
+	bge $s1, $t6, skip_platform_check
 	
 	lw $t6, player_delta_y
 	blt $t6, $zero, skip_platform_check
@@ -842,6 +846,7 @@ check_platform_stack:
 	bgt $t4, $zero, check_stack_loop
 	
 	b no_longer_standing_on_platform
+	
 	skip_platform_check:
 	jr $ra
 	
@@ -1004,9 +1009,6 @@ check_enemy_stack:
 		move $t7, $ra
 		jal draw_enemy
 		move $ra, $t7
-
-		b print
-		continue_after_print:
 		
 		j skip_inactive_enemy
 	
@@ -1192,7 +1194,7 @@ calculate_coords:
 	
 print:
 	li $v0, 1
-   	move $a0, $ra
+   	lw $a0, landed
  	syscall
  	
  	li $v0, 4
