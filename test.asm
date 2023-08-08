@@ -717,18 +717,17 @@ key_P:
 	b main
 	
 key_E:
-	lb $a2, landed
-	beq $a2, $zero, after_keypress
+	lb $a2, player_delta_y
+	bne $a2, $zero, after_keypress
+
+	b print
+	continue_after_print:
 
 	lb $a1, player_targettable
 	beq $zero, $a1, after_keypress
-
-	lw $a1, player_shooting
 	
-	bgt $a1, $zero, after_keypress
-	
-	addi $a1, $a1, 1
-	sw $a1, player_shooting
+	li $a2, 1
+	sw $a2, player_shooting
 	
 	b after_keypress
 	
@@ -776,6 +775,7 @@ player_hitbox:
 	j continue_after_player_hitbox
 
 player_x_nb:
+	
 	sw $a0, player_x
 	j continue_after_player_x_nb
 	
@@ -973,9 +973,6 @@ check_enemy_stack:
 	skip_inactive_enemy:
 	
 	bgt $t4, $zero, check_enemy_stack_loop
-	
-	#b print
-	continue_after_print:
 	
 	jr $ra
 	
