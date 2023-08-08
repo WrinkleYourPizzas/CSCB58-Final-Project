@@ -720,9 +720,6 @@ key_E:
 	lb $a2, player_delta_y
 	bne $a2, $zero, after_keypress
 
-	b print
-	continue_after_print:
-
 	lb $a1, player_targettable
 	beq $zero, $a1, after_keypress
 	
@@ -883,7 +880,7 @@ check_item_stack:
 	
 	jr $ra
 	
-check_enemy_stack:	
+check_enemy_stack:
 	# go to stack location
 	lw $sp, current_stack_address
 	lw $t1, enemy_stack_size
@@ -922,6 +919,19 @@ check_enemy_stack:
 	subi $t4, $t4, 1
 	
 	beq $a3, $zero, skip_all_enemy_conditions
+
+	# check if player has shot enemy	
+	lw $t3, player_shooting
+	li $t2, 3
+	bne $t3, $t2, skip_shot_check
+	blt $s1, $a2, skip_shot_check
+	lw $t3, player_height
+	add $t3, $t3, $a2
+	bgt $s1, $t3, skip_shot_check
+	
+	j set_enemy_to_inactive
+	
+	skip_shot_check:
 
 	# check for collision with player
 	lw $t2, player_width
@@ -985,6 +995,25 @@ check_enemy_stack:
 	decrease_shoot_cd:
 		subi $s6, $s6, 1
 		sw $s6, 0($t5)
+		j skip_inactive_enemy
+		
+	set_enemy_to_inactive:
+#		sw $zero, 0($fp)
+		
+#		lw $a0, black
+		
+#		move $t7, $ra
+#		jal draw_enemy
+#		move $ra, $t7
+
+		b print
+		continue_after_print:
+		
+		j skip_inactive_enemy
+	
+	increment_enemy_stack:
+		addi $sp, $sp, 20
+		subi $t4, $t4, 1
 		j skip_inactive_enemy
 	
 check_bullet_stack:
