@@ -952,7 +952,9 @@ check_enemy_stack:
 	add $t3, $t3, $a2
 	bgt $s1, $t3, skip_shot_check
 	
-	j set_enemy_to_inactive
+	lw $t3, player_orientation
+	bgt $t3, $zero, player_shot_right
+	b player_shot_left
 	
 	skip_shot_check:
 
@@ -1021,6 +1023,16 @@ check_enemy_stack:
 		subi $s6, $s6, 1
 		sw $s6, 0($t5)
 		j skip_inactive_enemy
+		
+	player_shot_right:
+		lw $s1, player_x
+		bgt $a1, $s1, set_enemy_to_inactive
+		j skip_shot_check
+	
+	player_shot_left:
+		lw $s1, player_x
+		blt $a1, $s1, set_enemy_to_inactive
+		j skip_shot_check
 		
 	set_enemy_to_inactive:
 		sw $zero, 0($s0)
