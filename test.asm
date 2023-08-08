@@ -38,6 +38,7 @@ bullet_stack_size: .word 0
 
 .globl main
 .text
+
 main:
 	# default values
 	sw $sp, base_stack_address
@@ -698,7 +699,7 @@ key_S:
 
 	b after_keypress
 
-key_D:	
+key_D:
 	lb $a1, player_targettable
 	beq $zero, $a1, after_keypress
 	
@@ -772,7 +773,6 @@ player_hitbox:
 	j continue_after_player_hitbox
 
 player_x_nb:
-	
 	sw $a0, player_x
 	j continue_after_player_x_nb
 	
@@ -890,9 +890,6 @@ check_enemy_stack:
 	sub $sp, $sp, $t2
 	sw $sp, current_stack_address
 	
-	# load player variables
-	lw $s0, player_x
-	lw $s1, player_y
 	lw $t4, enemy_stack_size
 	
 	# loop
@@ -904,6 +901,7 @@ check_enemy_stack:
 	move $fp, $sp
 	addi $sp, $sp, 4
 	lw $k1, 0($sp)		# active/inactive
+	move $s0, $sp
 	addi $sp, $sp, 4
 	lw $k0, 0($sp)		# upper move limit
 	addi $sp, $sp, 4
@@ -914,11 +912,10 @@ check_enemy_stack:
 	lw $a1, 0($sp)		# x
 	addi $sp, $sp, 4
 	
-	beq $k1, $zero, skip_inactive_enemy
-	
 	subi $t4, $t4, 1
 	
 	beq $a3, $zero, skip_all_enemy_conditions
+	beq $k1, $zero, skip_inactive_enemy
 
 	# check if player has shot enemy	
 	lw $t3, player_shooting
@@ -934,6 +931,8 @@ check_enemy_stack:
 	skip_shot_check:
 
 	# check for collision with player
+	lw $s0, player_x
+	lw $s1, player_y
 	lw $t2, player_width
 	lw $t3, player_height
 	
@@ -998,22 +997,17 @@ check_enemy_stack:
 		j skip_inactive_enemy
 		
 	set_enemy_to_inactive:
-#		sw $zero, 0($fp)
+		sw $zero, 0($s0)
+	
+		lw $a0, black
 		
-#		lw $a0, black
-		
-#		move $t7, $ra
-#		jal draw_enemy
-#		move $ra, $t7
+		move $t7, $ra
+		jal draw_enemy
+		move $ra, $t7
 
 		b print
 		continue_after_print:
 		
-		j skip_inactive_enemy
-	
-	increment_enemy_stack:
-		addi $sp, $sp, 20
-		subi $t4, $t4, 1
 		j skip_inactive_enemy
 	
 check_bullet_stack:
