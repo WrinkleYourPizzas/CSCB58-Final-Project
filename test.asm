@@ -80,15 +80,15 @@ main:
 	jal draw_door
 	
 	# draw platform 1	
-	lw $a0, green
-	li $a1, 6
-	li $a2, 55
-	li $a3, 30
+	lw $a0, green			# color
+	li $a1, 6			# start x
+	li $a2, 55			# y
+	li $a3, 30			# end x
 	jal draw_platform
 	
 	# draw platform 2	
 	lw $a0, green
-	li $a1, 35
+	li $a1, 30
 	li $a2, 45
 	li $a3, 60
 	jal draw_platform
@@ -125,14 +125,14 @@ main:
 	lw $a0, blue
 	li $a1, 20
 	li $a2, 53
-	li $a3, 1		# active/inactive
+	li $a3, 1		
 	jal draw_item
 	
 	# init item 3
 	lw $a0, purple
 	li $a1, 4
 	li $a2, 28
-	li $a3, 1		# active/inactive
+	li $a3, 1		
 	jal draw_item
 	
 	# init enemy 1
@@ -149,9 +149,20 @@ main:
 	# init enemy 2
 	lw $a0, red		# color
 	li $a1, 40		# x
-	li $a2, 30		# y
-	li $a3, 30		# lower move bound
-	li $v0, 60		# upper move bound
+	li $a2, 40		# y
+	li $a3, 35		# lower move bound
+	li $v0, 50		# upper move bound
+	li $v1, 1		# active/inactive
+	li $s5, -1		# movement direction
+	li $s6, 30		# shoot cooldown
+	jal init_enemy
+	
+	# init enemy 3
+	lw $a0, red		# color
+	li $a1, 45		# x
+	li $a2, 5		# y
+	li $a3, 35		# lower move bound
+	li $v0, 55		# upper move bound
 	li $v1, 1		# active/inactive
 	li $s5, -1		# movement direction
 	li $s6, 30		# shoot cooldown
