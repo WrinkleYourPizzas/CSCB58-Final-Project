@@ -1253,9 +1253,6 @@ check_enemy_stack:
 		j skip_inactive_enemy
 	
 check_bullet_stack:
-	# load player variables
-	lw $s0, player_x
-	lw $s1, player_y
 	lw $t4, bullet_stack_size
 	li $s3, 64
 	
@@ -1302,6 +1299,9 @@ check_bullet_stack:
 	lw $t2, player_targettable
 	beq $t2, $zero, continue_after_check_collision
 	
+	# load player variables
+	lw $s0, player_x
+	lw $s1, player_y
 	lw $t2, player_width
 	lw $t3, player_height
 	
@@ -1310,7 +1310,7 @@ check_bullet_stack:
 	bgt $a2, $t6, continue_after_check_collision
 	blt $a1, $s0, continue_after_check_collision
 	add $t6, $s0, $t2
-	ble $a1, $t6, take_damage
+	blt $a1, $t6, take_damage
 	
 	continue_after_check_collision:
 	
