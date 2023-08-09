@@ -14,7 +14,7 @@ yellow: .word 0xffff00
 gray: .word 0x808080
 display: .word 0x10008000
 
-player_health: .word 100
+player_health: .word 30
 player_targettable: .byte 1
 player_x: .word 4
 player_y: .word 5
@@ -101,7 +101,7 @@ main:
 	# draw platform 5
 	lw $a0, green
 	li $a1, 10
-	li $a2, 20
+	li $a2, 15
 	li $a3, 20
 	jal draw_platform
 	
@@ -148,7 +148,13 @@ main:
 
 	b game_loop
 	
-game_loop:		
+game_loop:
+	# draw end door
+	lw $a0, brown
+	lw $a1, end_x
+	lw $a2, end_y
+	jal draw_door
+
 	# draw player
 	jal erase_player
 	
@@ -1043,7 +1049,7 @@ check_enemy_stack:
 	beq $t6, $zero, skip_shoot_at_player
 	
 	# reset shoot cd
-	li $s6, 10
+	li $s6, 30
 	sw $s6, 0($t5)
 	
 	li $a3, 2
