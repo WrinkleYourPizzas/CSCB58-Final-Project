@@ -129,18 +129,11 @@ main:
 	# draw platform 3	
 	lw $a0, green
 	li $a1, 10
-	li $a2, 35
+	li $a2, 37
 	li $a3, 27
 	jal draw_platform
 	
 	# draw platform 4
-	lw $a0, green
-	li $a1, 0
-	li $a2, 30
-	li $a3, 15
-	jal draw_platform
-	
-	# draw platform 5
 	lw $a0, green
 	li $a1, 20
 	li $a2, 10
@@ -163,8 +156,8 @@ main:
 	
 	# init item 3
 	lw $a0, purple
-	li $a1, 4
-	li $a2, 28
+	li $a1, 16
+	li $a2, 35
 	li $a3, 1		
 	jal init_item
 	
