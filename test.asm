@@ -35,7 +35,6 @@ player_shooting: .word 0
 end_x: .word 54
 end_y: .word 5
 
-
 base_stack_address: .word 0
 current_stack_address: .word 0
 platform_stack_size: .word 0
@@ -529,13 +528,15 @@ draw_item:
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
-	li $t2, 8
+	li $t2, 12
 	lw $t1, item_stack_size
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
 
 	# push to stack
+	addi $sp, $sp, -4
+	sw $a0, 0($sp)
 	addi $sp, $sp, -4
 	sw $a1, 0($sp)
 	addi $sp, $sp, -4
@@ -547,17 +548,16 @@ draw_item:
 	# find coord
 	move $t9, $ra
 	jal calculate_coords
-	move $t1, $v0
 	move $ra, $t9
 	
 	# draw
-	sw $a0, ($t1)
-	addi $t1, $t1, 4
-	sw $a0, ($t1)
-	addi $t1, $t1, 252
-	sw $a0, ($t1)
-	addi $t1, $t1, 4
-	sw $a0, ($t1)
+	sw $a0, ($v0)
+	addi $v0, $v0, 4
+	sw $a0, ($v0)
+	addi $v0, $v0, 252
+	sw $a0, ($v0)
+	addi $v0, $v0, 4
+	sw $a0, ($v0)
 
 	jr $ra
 	
@@ -569,7 +569,7 @@ init_enemy:
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
-	li $t2, 8
+	li $t2, 12
 	lw $t1, item_stack_size
 	mult $t1, $t2
 	mflo $t2
@@ -699,7 +699,7 @@ init_bullet:
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
-	li $t2, 8
+	li $t2, 12
 	lw $t1, item_stack_size
 	mult $t1, $t2
 	mflo $t2
@@ -969,26 +969,53 @@ no_longer_standing_on_platform:
 check_item_stack:	
 	# go to stack location
 	lw $sp, current_stack_address
-	li $t2, 8
+	li $t2, 12
 	lw $t1, item_stack_size
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
 	sw $sp, current_stack_address
 	
+	lw $s2, purple
+	lw $s3, gray
+	lw $s4, blue
+	
+	# loop
+	check_item_stack_loop:
+	lw $a2, 0($sp) 		# y
+	addi $sp, $sp, 4
+	lw $a1, 0($sp) 		# x
+	addi $sp, $sp, 4
+	lw $a0, 0($sp) 		# color
+	addi $sp, $sp, 4
+	
+	subi $t1, $t1, 1
+	
+	lw $s0, player_x
+	lw $s1, player_y
+#	addi $s0, $s0, 1
+	addi $s1, $s1, 3
+	
+	bne $a1, $s0, skip_item_conditions
+	bne $a2, $s1, skip_item_conditions
+	
+	b print
+	continue_after_print:
+	
+	skip_item_conditions:
+	bgt $t1, $zero, check_item_stack_loop
+	
 	jr $ra
 	
 check_enemy_stack:
 	# go to stack location
 	lw $sp, current_stack_address
-	lw $t1, enemy_stack_size
+	lw $t4, enemy_stack_size
 	li $t2, 28
-	mult $t1, $t2
+	mult $t4, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
 	sw $sp, current_stack_address
-	
-	lw $t4, enemy_stack_size
 	
 	# loop
 	check_enemy_stack_loop:
@@ -1301,16 +1328,49 @@ calculate_coords:
 	jr $ra
 	
 print:
+	move $t6, $a0
+	
 	li $v0, 1
-   	lw $a0, landed
+   	move $a0, $t6
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+	li $v0, 1
+   	move $a0, $a1
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+   	move $a0, $a2
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+   	move $a0, $s0
+ 	syscall
+ 	
+ 	li $v0, 4
+ 	la $a0, comma
+ 	syscall
+ 	
+ 	li $v0, 1
+   	move $a0, $s1
  	syscall
  	
  	li $v0, 4
  	la $a0, newline
  	syscall
  
- 	j continue_after_print	
- 	continue_after_print:
+ 	j continue_after_print
 # 	jr $ra
  	
 print_stack:
