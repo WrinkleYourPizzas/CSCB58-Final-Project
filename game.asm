@@ -71,9 +71,6 @@ jump_force: .word -7
 taking_damage: .byte 0
 player_shooting: .word 0
 
-end_x: .word 54
-end_y: .word 5
-
 base_stack_address: .word 2147479576
 current_stack_address: .word 0
 platform_stack_size: .word 0
@@ -114,12 +111,6 @@ main:
 
 	# $s2 stores key input
 	li $s2, 0x000000
-	
-	# draw end door
-	lw $a0, brown
-	lw $a1, end_x
-	lw $a2, end_y
-	jal draw_door
 	
 	# draw platform 1	
 	lw $a0, green			# color
@@ -213,12 +204,6 @@ main:
 	b game_loop
 	
 game_loop:
-	# draw end door
-	lw $a0, brown
-	lw $a1, end_x
-	lw $a2, end_y
-	jal draw_door
-
 	# draw player
 	jal erase_player
 	
@@ -489,50 +474,6 @@ draw_player:
 		ble $t6, $zero, exit
 	
 		j continue_after_player_damage_effect
-		
-draw_door:
-	move $t9, $ra
-	jal calculate_coords
-	move $ra, $t9
-	
-	addi $v0, $v0, 4
-	sw $a0, 0($v0)
-	addi $v0, $v0, 4
-	sw $a0, 0($v0)
-	addi $v0, $v0, 248
-	sw $a0, 0($v0)
-	addi $v0, $v0, 4
-	sw $a0, 0($v0)
-	addi $v0, $v0, 4
-	sw $a0, 0($v0)
-	addi $v0, $v0, 4
-	sw $a0, 0($v0)
-	addi $v0, $v0, 244
-	sw $a0, 0($v0)
-	addi $v0, $v0, 4
-	sw $a0, 0($v0)
-	addi $v0, $v0, 4
-	sw $a0, 0($v0)
-	addi $v0, $v0, 4
-	sw $a0, 0($v0)
-	addi $v0, $v0, 244
-	sw $a0, 0($v0)
-	addi $v0, $v0, 4
-	sw $a0, 0($v0)
-	addi $v0, $v0, 4
-	sw $a0, 0($v0)
-	addi $v0, $v0, 4
-	sw $a0, 0($v0)
-	addi $v0, $v0, 244
-	sw $a0, 0($v0)
-	addi $v0, $v0, 4
-	sw $a0, 0($v0)
-	addi $v0, $v0, 4
-	sw $a0, 0($v0)
-	addi $v0, $v0, 4
-	sw $a0, 0($v0)
-	
-	jr $ra
 	
 draw_platform:
 	# go to stack location
