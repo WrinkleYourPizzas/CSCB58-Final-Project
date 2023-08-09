@@ -1,3 +1,40 @@
+#####################################################################
+#
+# CSCB58 Winter 2022 Assembly Final Project
+# University of Toronto, Scarborough
+#
+# Student: Matthew Xie, 1007897206, xiematth, matthew.xie@mail.utoronto.ca
+#
+# Bitmap Display Configuration:
+# - Unit width in pixels: 4 (update this as needed)
+# - Unit height in pixels: 4 (update this as needed)
+# - Display width in pixels: 256 (update this as needed)
+# - Display height in pixels: 256 (update this as needed)
+# - Base Address for Display: 0x10008000 ($gp)
+#
+# Which milestones have been reached in this submission?
+# (See the assignment handout for descriptions of the milestones)
+# - Milestone 3 (choose the one the applies)
+#
+# Which approved features have been implemented for milestone 3?
+# (See the assignment handout for the list of additional features)
+# 1. Moving objects
+# 2. Shoot enemies
+# 3. Enemies shoot back
+# 4. Pick-up effects
+# 5. Double jump 
+#
+# Link to video demonstration for final submission:
+# - (insert YouTube / MyMedia / other URL here). Make sure we can view it!
+#
+# Are you OK with us sharing the video with people outside course staff?
+# - yes
+#
+# Any additional information that the TA needs to know:
+# - the bullet trail effect from milestone 2 is implemented in the player's shooting effect
+#
+#####################################################################
+
 .data
 bracket: .asciiz "("
 bracket0: .asciiz ")"
@@ -143,7 +180,7 @@ main:
 	li $v0, 40		# upper move bound
 	li $v1, 1		# active/inactive
 	li $s5, -1		# movement direction
-	li $s6, 30		# shoot cooldown
+	li $s6, 20		# shoot cooldown
 	jal init_enemy
 	
 	# init enemy 2
@@ -154,7 +191,7 @@ main:
 	li $v0, 50		# upper move bound
 	li $v1, 1		# active/inactive
 	li $s5, -1		# movement direction
-	li $s6, 30		# shoot cooldown
+	li $s6, 20		# shoot cooldown
 	jal init_enemy
 	
 	# init enemy 3
@@ -1145,7 +1182,7 @@ check_enemy_stack:
 	beq $t6, $zero, skip_shoot_at_player
 	
 	# reset shoot cd
-	li $s6, 30
+	li $s6, 20
 	sw $s6, 0($t5)
 	
 	li $a3, 2
