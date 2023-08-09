@@ -12,6 +12,8 @@ brown: .word 0x964b00
 white: .word 0xffffff
 yellow: .word 0xffff00
 gray: .word 0x808080
+purple: .word 0x800080
+
 display: .word 0x10008000
 
 player_health: .word 30
@@ -91,7 +93,7 @@ main:
 	li $a3, 27
 	jal draw_platform
 	
-	# draw platform 4	
+	# draw platform 4
 	lw $a0, green
 	li $a1, 0
 	li $a2, 30
@@ -113,15 +115,21 @@ main:
 	jal draw_platform
 	
 	# init item 1
-	lw $a0, blue
-	li $a1, 23
+	lw $a0, gray
+	li $a1, 54
 	li $a2, 43
 	jal draw_item
 	
 	# init item 2
 	lw $a0, blue
-	li $a1, 14
-	li $a2, 48
+	li $a1, 20
+	li $a2, 53
+	jal draw_item
+	
+	# init item 3
+	lw $a0, purple
+	li $a1, 4
+	li $a2, 28
 	jal draw_item
 	
 	# init enemy 1
