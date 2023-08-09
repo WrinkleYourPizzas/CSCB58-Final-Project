@@ -74,7 +74,7 @@ player_shooting: .word 0
 end_x: .word 54
 end_y: .word 5
 
-base_stack_address: .word 0
+base_stack_address: .word 2147479576
 current_stack_address: .word 0
 platform_stack_size: .word 0
 item_stack_size: .word 0
@@ -86,20 +86,25 @@ bullet_stack_size: .word 0
 
 main:
 	# default values
-	sw $sp, base_stack_address
-	sw $zero, player_x
-	li $t0, 50
-	sw $t0, player_y
-	li $t0, 50
-	sw $t0, player_health
+	lw $sp, base_stack_address
+	sw $zero, current_stack_address
+	
 	sw $zero, platform_stack_size
 	sw $zero, item_stack_size
 	sw $zero, enemy_stack_size
 	sw $zero, bullet_stack_size
+	
+	sw $zero, player_x
+	li $t0, 50
+	sw $t0, player_y
+	sw $t0, player_health
+	
 	sw $zero, x0
 	sw $zero, y0
+	
 	sw $zero, air_time
 	sw $zero, player_delta_y
+	
 	li $t0, 1
 	sw $t0, landed
 	li $t0, 2
@@ -225,6 +230,8 @@ game_loop:
 	skip_draw_player:
 	
 	# store previous player location
+	lw $s0, player_x
+	lw $s1, player_y
 	sw $s0, x0
 	sw $s1, y0
 
@@ -1288,8 +1295,7 @@ check_bullet_stack:
 	beq $k1, $zero, skip_inactive_bullet
 	
 	ble $a1, $zero, set_bullet_to_inactive
-	beq $a1, $s3, set_bullet_to_inactive
-	beq $k0, $zero, set_bullet_to_inactive
+	bge $a1, $s3, set_bullet_to_inactive
 	beq $k1, $zero, skip_inactive_bullet
 	
 	# check for collision with player
@@ -1389,9 +1395,9 @@ enemy_collision:
 	sw $t2, player_y
 	
 	li $t1, 1
-	sb $t1, player_targettable
+	sb $t1, player_targettable	
 	
-	jr $ra
+	j skip_all_enemy_conditions
 	
 enemy_death:
 	lw $a0, black
@@ -1410,6 +1416,7 @@ clear_screen:
 		addi $t1, $t1, 4
 		subi $t3, $t3, 1
 		bgt $t3, $t4, change_to_black
+	
 	jr $ra
 	
 calculate_coords:
@@ -1474,5 +1481,6 @@ print:
  	j continue_after_print
 
 exit:
-	li $v0, 10 
-	syscall
+	j key_P
+#	li $v0, 10 
+#	syscall
