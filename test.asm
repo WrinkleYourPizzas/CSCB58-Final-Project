@@ -101,34 +101,30 @@ main:
 	
 	# draw platform 5
 	lw $a0, green
-	li $a1, 10
-	li $a2, 15
-	li $a3, 20
-	jal draw_platform
-	
-	# draw platform 6
-	lw $a0, green
 	li $a1, 20
 	li $a2, 10
 	li $a3, 60
 	jal draw_platform
 	
 	# init item 1
-	lw $a0, gray
-	li $a1, 54
-	li $a2, 43
+	lw $a0, gray		# color
+	li $a1, 54		# x
+	li $a2, 43		# y
+	li $a3, 1		# active/inactive
 	jal draw_item
 	
 	# init item 2
 	lw $a0, blue
 	li $a1, 20
 	li $a2, 53
+	li $a3, 1		# active/inactive
 	jal draw_item
 	
 	# init item 3
 	lw $a0, purple
 	li $a1, 4
 	li $a2, 28
+	li $a3, 1		# active/inactive
 	jal draw_item
 	
 	# init enemy 1
@@ -188,7 +184,6 @@ game_loop:
 	
 	beq $t8, 0x77, key_W
 	beq $t8, 0x61, key_A
-	beq $t8, 0x73, key_S
 	beq $t8, 0x64, key_D
 	beq $t8, 0x70, key_P
 	beq $t8, 0x65, key_E
@@ -528,7 +523,7 @@ draw_item:
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
-	li $t2, 12
+	li $t2, 16
 	lw $t1, item_stack_size
 	mult $t1, $t2
 	mflo $t2
@@ -541,6 +536,8 @@ draw_item:
 	sw $a1, 0($sp)
 	addi $sp, $sp, -4
 	sw $a2, 0($sp)
+	addi $sp, $sp, -4
+	sw $a3, 0($sp)
 	
 	addi $t1, $t1, 1
 	sw $t1, item_stack_size
@@ -569,7 +566,7 @@ init_enemy:
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
-	li $t2, 12
+	li $t2, 16
 	lw $t1, item_stack_size
 	mult $t1, $t2
 	mflo $t2
@@ -699,7 +696,7 @@ init_bullet:
 	mult $t1, $t2
 	mflo $t2
 	sub $sp, $sp, $t2
-	li $t2, 12
+	li $t2, 16
 	lw $t1, item_stack_size
 	mult $t1, $t2
 	mflo $t2
@@ -786,13 +783,6 @@ key_A:
    	li $a1, -1
    	sw $a1, player_orientation
 	
-	b after_keypress
-
-key_S:
-#	lw $a1, player_y
-#	addi $a1, $a1, 2 
-#   	sw $a1, player_y
-
 	b after_keypress
 
 key_D:
@@ -969,7 +959,7 @@ no_longer_standing_on_platform:
 check_item_stack:	
 	# go to stack location
 	lw $sp, current_stack_address
-	li $t2, 12
+	li $t2, 16
 	lw $t1, item_stack_size
 	mult $t1, $t2
 	mflo $t2
@@ -982,6 +972,9 @@ check_item_stack:
 	
 	# loop
 	check_item_stack_loop:
+	lw $a3, 0($sp) 		# active/inactive
+	move $t5, $sp
+	addi $sp, $sp, 4
 	lw $a2, 0($sp) 		# y
 	addi $sp, $sp, 4
 	lw $a1, 0($sp) 		# x
@@ -991,13 +984,17 @@ check_item_stack:
 	
 	subi $t1, $t1, 1
 	
+	beq $a3, $zero, skip_item_conditions
+	
+	# load player coords
 	lw $s0, player_x
 	lw $s1, player_y
-#	addi $s0, $s0, 1
 	addi $s1, $s1, 3
 	
 	bne $a1, $s0, skip_item_conditions
 	bne $a2, $s1, skip_item_conditions
+	
+	sw $zero, 0($t5)
 	
 	b print
 	continue_after_print:
@@ -1371,20 +1368,6 @@ print:
  	syscall
  
  	j continue_after_print
-# 	jr $ra
- 	
-print_stack:
-	li $v0, 1
-   	lb $a0, player_targettable
- 	syscall
- 	
- 	li $v0, 4
- 	la $a0, newline
- 	syscall
- 	
-# 	jr $ra
-	j continue_after_print_stack
-	continue_after_print_stack:
 
 exit:
 	li $v0, 10 
