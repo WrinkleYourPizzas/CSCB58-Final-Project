@@ -892,9 +892,6 @@ player_y_pb:
    	sw $zero, player_delta_y
    	sw $zero, jump_counter
 	
-	b print
-	continue_after_print:
-	
 	j continue_after_player_y_pb
 
 check_platform_stack:
@@ -1143,7 +1140,7 @@ check_bullet_stack:
 	lw $s5, 0($sp)		# type
 	addi $sp, $sp, 4
 	lw $k1, 0($sp)		# active/inactive
-	move $s0, $sp
+	move $s7, $sp
 	addi $sp, $sp, 4
 	lw $a0, 0($sp)		# colour
 	addi $sp, $sp, 4
@@ -1199,14 +1196,14 @@ check_bullet_stack:
 	set_bullet_to_inactive:
 		move $t7, $ra
 		
-		sw $zero, 0($s0)
+		sw $zero, 0($s7)
 		lw $a0, black
 		jal draw_bullet
 		
 		move $ra, $t7	
 		j skip_inactive_bullet
 	
-	take_damage:
+	take_damage:	
 		li $t6, 1
 		sb $t6, taking_damage
 		j set_bullet_to_inactive
@@ -1313,6 +1310,7 @@ print:
  	syscall
  
  	j continue_after_print	
+ 	continue_after_print:
 # 	jr $ra
  	
 print_stack:
