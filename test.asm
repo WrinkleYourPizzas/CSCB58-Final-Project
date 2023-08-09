@@ -16,10 +16,11 @@ purple: .word 0x800080
 
 display: .word 0x10008000
 
-player_health: .word 30
+player_health: .word 50
 player_targettable: .byte 1
 player_x: .word 4
 player_y: .word 5
+player_speed: .word 2
 player_width: .word 4
 player_height: .word 5
 player_delta_y: .word 0
@@ -29,6 +30,7 @@ player_orientation: .word 1
 landed: .byte 1
 air_time: .word 0
 jump_counter: .word 0
+jump_force: .word -7
 taking_damage: .byte 0
 player_shooting: .word 0
 
@@ -51,6 +53,8 @@ main:
 	sw $zero, player_x
 	li $t0, 50
 	sw $t0, player_y
+	li $t0, 30
+	sw $t0, player_health
 	sw $zero, platform_stack_size
 	sw $zero, item_stack_size
 	sw $zero, enemy_stack_size
@@ -61,6 +65,10 @@ main:
 	sw $zero, player_delta_y
 	li $t0, 1
 	sw $t0, landed
+	li $t0, 2
+	sw $t0, player_speed
+	li $t0, -7
+	sw $t0, jump_force
 
 	# $s2 stores key input
 	li $s2, 0x000000
@@ -767,7 +775,7 @@ key_W:
    	li $a1, 0
    	sw $a1, landed
    	
-   	li $a1, -7
+   	lw $a1, jump_force
    	sw $a1, player_delta_y
    	
 	b after_keypress
@@ -777,7 +785,9 @@ key_A:
 	beq $zero, $a1, after_keypress
 	
 	lw $a1, player_x
-	subi $a1, $a1, 2
+	lw $a2, player_speed
+	sub $a1, $a1, $a2
+#	subi $a1, $a1, 2
    	sw $a1, player_x
    	
    	li $a1, -1
@@ -790,7 +800,9 @@ key_D:
 	beq $zero, $a1, after_keypress
 	
 	lw $a1, player_x
-	addi $a1, $a1, 2
+	lw $a2, player_speed
+	add $a1, $a1, $a2
+#	addi $a1, $a1, 2
    	sw $a1, player_x
    	
    	li $a1, 1
@@ -996,13 +1008,34 @@ check_item_stack:
 	
 	sw $zero, 0($t5)
 	
-	b print
+#	b print
 	continue_after_print:
+	
+	beq $a0, $s2, purple_item
+	beq $a0, $s3, gray_item
+	beq $a0, $s4, blue_item
 	
 	skip_item_conditions:
 	bgt $t1, $zero, check_item_stack_loop
 	
 	jr $ra
+	
+	purple_item:
+		lw $t4, jump_force
+		subi $t4, $t4, 2
+		sw $t4, jump_force
+		j skip_item_conditions
+		
+	gray_item:
+		li $t4, 30
+		sw $t4, player_health
+		j skip_item_conditions
+		
+	blue_item:
+		lw $t4, player_speed
+		addi $t4, $t4, 2
+		sw $t4, player_speed
+		j skip_item_conditions
 	
 check_enemy_stack:
 	# go to stack location
