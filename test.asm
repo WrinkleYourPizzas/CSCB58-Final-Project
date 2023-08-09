@@ -8,6 +8,7 @@ red: .word 0xff0000
 green: .word 0x00ff00
 blue: .word 0x0000ff
 black: .word 0x000000
+brown: .word 0x964b00
 white: .word 0xffffff
 yellow: .word 0xffff00
 gray: .word 0x808080
@@ -28,6 +29,10 @@ air_time: .word 0
 jump_counter: .word 0
 taking_damage: .byte 0
 player_shooting: .word 0
+
+end_x: .word 54
+end_y: .word 5
+
 
 base_stack_address: .word 0
 current_stack_address: .word 0
@@ -58,6 +63,12 @@ main:
 
 	# $s2 stores key input
 	li $s2, 0x000000
+	
+	# draw end door
+	lw $a0, brown
+	lw $a1, end_x
+	lw $a2, end_y
+	jal draw_door
 	
 	# draw platform 1	
 	lw $a0, green
@@ -407,6 +418,50 @@ draw_player:
 		ble $t6, $zero, exit
 	
 		j continue_after_player_damage_effect
+		
+draw_door:
+	move $t9, $ra
+	jal calculate_coords
+	move $ra, $t9
+	
+	addi $v0, $v0, 4
+	sw $a0, 0($v0)
+	addi $v0, $v0, 4
+	sw $a0, 0($v0)
+	addi $v0, $v0, 248
+	sw $a0, 0($v0)
+	addi $v0, $v0, 4
+	sw $a0, 0($v0)
+	addi $v0, $v0, 4
+	sw $a0, 0($v0)
+	addi $v0, $v0, 4
+	sw $a0, 0($v0)
+	addi $v0, $v0, 244
+	sw $a0, 0($v0)
+	addi $v0, $v0, 4
+	sw $a0, 0($v0)
+	addi $v0, $v0, 4
+	sw $a0, 0($v0)
+	addi $v0, $v0, 4
+	sw $a0, 0($v0)
+	addi $v0, $v0, 244
+	sw $a0, 0($v0)
+	addi $v0, $v0, 4
+	sw $a0, 0($v0)
+	addi $v0, $v0, 4
+	sw $a0, 0($v0)
+	addi $v0, $v0, 4
+	sw $a0, 0($v0)
+	addi $v0, $v0, 244
+	sw $a0, 0($v0)
+	addi $v0, $v0, 4
+	sw $a0, 0($v0)
+	addi $v0, $v0, 4
+	sw $a0, 0($v0)
+	addi $v0, $v0, 4
+	sw $a0, 0($v0)
+	
+	jr $ra
 	
 draw_platform:
 	# go to stack location
