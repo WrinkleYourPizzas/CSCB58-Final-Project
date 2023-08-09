@@ -53,7 +53,7 @@ main:
 	sw $zero, player_x
 	li $t0, 50
 	sw $t0, player_y
-	li $t0, 30
+	li $t0, 50
 	sw $t0, player_health
 	sw $zero, platform_stack_size
 	sw $zero, item_stack_size
@@ -119,21 +119,21 @@ main:
 	li $a1, 54		# x
 	li $a2, 43		# y
 	li $a3, 1		# active/inactive
-	jal draw_item
+	jal init_item
 	
 	# init item 2
 	lw $a0, blue
 	li $a1, 20
 	li $a2, 53
 	li $a3, 1		
-	jal draw_item
+	jal init_item
 	
 	# init item 3
 	lw $a0, purple
 	li $a1, 4
 	li $a2, 28
 	li $a3, 1		
-	jal draw_item
+	jal init_item
 	
 	# init enemy 1
 	lw $a0, red		# color
@@ -534,7 +534,7 @@ draw_platform:
 	
 	jr $ra
 	
-draw_item:
+init_item:
 	# go to stack location
 	lw $sp, base_stack_address
 	lw $t1, platform_stack_size
@@ -561,19 +561,9 @@ draw_item:
 	addi $t1, $t1, 1
 	sw $t1, item_stack_size
 	
-	# find coord
-	move $t9, $ra
-	jal calculate_coords
-	move $ra, $t9
-	
-	# draw
-	sw $a0, ($v0)
-	addi $v0, $v0, 4
-	sw $a0, ($v0)
-	addi $v0, $v0, 252
-	sw $a0, ($v0)
-	addi $v0, $v0, 4
-	sw $a0, ($v0)
+	move $t5, $ra
+	jal draw_item
+	move $ra, $t5
 
 	jr $ra
 	
@@ -618,6 +608,23 @@ init_enemy:
 	move $t9, $ra
 	jal draw_enemy
 	move $ra, $t9
+	
+	jr $ra
+	
+draw_item:
+	# find coord
+	move $t9, $ra
+	jal calculate_coords
+	move $ra, $t9
+	
+	# draw
+	sw $a0, ($v0)
+	addi $v0, $v0, 4
+	sw $a0, ($v0)
+	addi $v0, $v0, 252
+	sw $a0, ($v0)
+	addi $v0, $v0, 4
+	sw $a0, ($v0)
 	
 	jr $ra
 	
@@ -989,6 +996,8 @@ check_item_stack:
 	sub $sp, $sp, $t2
 	sw $sp, current_stack_address
 	
+	lw $t3, player_width
+	lw $s6, player_height
 	lw $s2, purple
 	lw $s3, gray
 	lw $s4, blue
@@ -1009,18 +1018,32 @@ check_item_stack:
 	
 	beq $a3, $zero, skip_item_conditions
 	
+	move $k0, $ra
+	jal draw_item
+	move $ra, $k0
+	
 	# load player coords
 	lw $s0, player_x
 	lw $s1, player_y
 	addi $s1, $s1, 3
 	
-	bne $a1, $s0, skip_item_conditions
+	add $s6, $s0, $t3
+	ble $s6, $a1, skip_item_conditions
+	add $s6, $a1, 1
+	bge $s0, $s6, skip_item_conditions
 	bne $a2, $s1, skip_item_conditions
 	
 	sw $zero, 0($t5)
 	
 #	b print
 	continue_after_print:
+
+	move $k1, $a0
+	lw $a0, black
+	move $k0, $ra
+	jal draw_item
+	move $ra, $k0
+	move $a0, $k1
 	
 	beq $a0, $s2, purple_item
 	beq $a0, $s3, gray_item
@@ -1038,7 +1061,7 @@ check_item_stack:
 		j skip_item_conditions
 		
 	gray_item:
-		li $t4, 30
+		li $t4, 50
 		sw $t4, player_health
 		j skip_item_conditions
 		
